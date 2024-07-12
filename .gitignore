@@ -1,0 +1,10 @@
+*.pyc
+/frontend-v2/node_modules/
+/frontend-v2/.vite/
+/frontend-old/
+/backend/step_function/scratch/
+variable.env
+response.json
+environment.env
+/backend/data/
+functions_details.json
