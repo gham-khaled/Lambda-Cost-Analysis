@@ -5,23 +5,27 @@ import {BucketDeployment, Source} from "aws-cdk-lib/aws-s3-deployment";
 import {
     AllowedMethods, CachePolicy, CloudFrontAllowedMethods,
     CloudFrontWebDistribution,
-    Distribution,
+    Distribution, LambdaEdgeEventType,
     OriginAccessIdentity, OriginProtocolPolicy, OriginRequestPolicy,
     ViewerProtocolPolicy
 } from "aws-cdk-lib/aws-cloudfront";
-import {CfnOutput} from "aws-cdk-lib";
+import {CfnOutput, Duration} from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import {HttpOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class S3WebsiteStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props: cdk.StackProps, api: apigateway.RestApi) {
+    constructor(scope: Construct, id: string, props: cdk.StackProps, api: apigateway.RestApi, authLambda: lambda.Function) {
         super(scope, id, props);
+
         const bucket = new Bucket(this, 'analysis-website', {
             // websiteIndexDocument: 'index.html',
             publicReadAccess: false,
             autoDeleteObjects: true,
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
+
         new BucketDeployment(this, 'MyDeployment', {
             sources: [Source.asset('../frontend/dist/')],
             destinationBucket: bucket,
@@ -49,6 +53,11 @@ export class S3WebsiteStack extends cdk.Stack {
                     allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                     cachePolicy: CachePolicy.CACHING_OPTIMIZED,
                     viewerProtocolPolicy: ViewerProtocolPolicy.ALLOW_ALL,
+                    edgeLambdas: [
+                        {
+                            functionVersion: authLambda.currentVersion,
+                            eventType: LambdaEdgeEventType.VIEWER_REQUEST,
+                        }]
                 },
                 // the addition behaviors is how we set up a reverse proxy to the API
                 additionalBehaviors: {

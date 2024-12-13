@@ -25,6 +25,8 @@ const ReportDetails = () => {
         // analysisDetail,
         summary,
         setSummary,
+        downloadURL,
+        setDownloadURL,
         status,
         setStatus,
         setAnalysisDetail,
@@ -46,7 +48,14 @@ const ReportDetails = () => {
     //     setSummary,
     //     setStatus,
     // ])
-
+    const downloadFile = () => {
+        // Create a temporary link to download the file
+        const link = document.createElement('a');
+        link.href = downloadURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
     useEffect(() => {
         setAnalysis([])
         setAnalysisDetail({})
@@ -67,6 +76,7 @@ const ReportDetails = () => {
                     } else {
                         setAnalysis(response.data.analysis)
                         setAnalysisDetail(response.data)
+                        setDownloadURL(response.data.url)
                         setLoading(false)
                     }
 
@@ -97,12 +107,19 @@ const ReportDetails = () => {
                         <p className='text-white/70 text-sm ml-4'>{reportNumber[1]}</p>
                     </div>
                     {status === 'Completed' && (
-                        <div className=' text-sm flex flex-row  font-semibold text-lambdaPrimary   rounded-md  '>
-                            <p className='hidden lg:flex'>Analysis date</p>
-                            <p className='text-white/70 text-sm lg:ml-4'>
-                                {new Date(summary.startDate).toDateString()} - {new Date(summary.endDate).toDateString()}
-                            </p>
-                        </div>)}
+                        <div className='text-sm flex flex-row font-semibold text-lambdaPrimary rounded-md justify-between'>
+                            <div className='flex items-center'>
+                                <p className='hidden lg:flex'>Analysis Date:</p>
+                                <p className='text-white/70 text-sm lg:ml-4'>
+                                    {new Date(summary.startDate).toDateString()} - {new Date(summary.endDate).toDateString()}
+                                </p>
+                            </div>
+                            <button onClick={downloadFile} className='ml-auto  bg-lambdaPrimary text-white px-4 py-2 rounded'>
+                                Download CSV
+                            </button>
+                        </div>
+                    )}
+
                 </div>
 
                 {status === 'Completed' && analysis.length > 0 ? (

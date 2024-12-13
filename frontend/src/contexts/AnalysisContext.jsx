@@ -16,7 +16,9 @@ export const AnalysisProvider = ({ children }) => {
 	const [startDate, setStartDate] = useState(null)
 	const [endDate, setEndDate] = useState(null)
 
+
 	const [summary, setSummary] = useState({})
+	const [downloadURL, setDownloadURL] = useState('')
 	const [status, setStatus] = useState('')
 
 	const [initialRuntime, setInitialRuntime] = useState([])
@@ -43,6 +45,8 @@ export const AnalysisProvider = ({ children }) => {
 				setAnalysis,
 				analysisDetail,
 				setAnalysisDetail,
+				downloadURL,
+				setDownloadURL,
 				rowsPerPage,
 				setRowsPerPage,
 				continuationToken,

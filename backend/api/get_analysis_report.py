@@ -35,10 +35,15 @@ def lambda_handler(event, context):
             }
         else:
             analysis = download_from_s3(file_name='analysis.csv', bucket_name=bucket_name, directory=report_id)
+
+            download_url = s3_client.generate_presigned_url('get_object',
+                                                   Params={'Bucket': bucket_name, 'Key': f"{report_id}/analysis.csv"},
+                                                   ExpiresIn=3600)
             df = pd.read_csv(StringIO(analysis), sep=',', index_col=0)
             return {
                 'statusCode': 200,
-                'body': json.dumps({'analysis': json.loads(df.to_json(orient="records")), 'summary': summary}),
+                'body': json.dumps(
+                    {'analysis': json.loads(df.to_json(orient="records")), 'summary': summary, 'url': download_url}),
             }
     except ClientError as e:
         if e.response['Error']['Code'] == 'NoSuchKey':
