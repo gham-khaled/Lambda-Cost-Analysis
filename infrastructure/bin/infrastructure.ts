@@ -7,12 +7,9 @@ import {S3WebsiteStack} from "../lib/s3-website-stack";
 import {CdnAuthStack} from "../lib/cdn-auth";
 
 const app = new cdk.App();
-const envDev = {account: '068008800301', region: 'eu-west-1', profile: 'sinda',  crossRegionReferences: true}
-// const envShifted = {account: '990090217414', region: 'us-west-2'}
-const currentDev = envDev
-const currentDevUS = { ...envDev, region: 'us-east-1'  };
+const currentDev = {  region: 'us-west-2'  };
 
 const sfAnalysisStack = new StepFunctionAnalysisStack(app, 'StepFunctionAnalysisStack', {env: currentDev});
-const cdnAuthStack = new CdnAuthStack(app, 'CdnAuthStack', {env: currentDevUS, crossRegionReferences: true});
 const reportApiStack = new ReportApiStack(app, 'ReportApiStack', {env: currentDev}, sfAnalysisStack.analysisStepFunction, sfAnalysisStack.analysisBucket);
+const cdnAuthStack = new CdnAuthStack(app, 'CdnAuthStack', {env: {  region: 'us-east-1'  }, crossRegionReferences: true});
 new S3WebsiteStack(app, 'ReportWebsiteStack', {env: currentDev, crossRegionReferences: true}, reportApiStack.api, cdnAuthStack.authFunction);

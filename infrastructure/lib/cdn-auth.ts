@@ -24,18 +24,19 @@ export class CdnAuthStack extends cdk.Stack {
             allowedValues: ['True', 'False'],
             description: 'Enable or disable basic auth',
         });
+        if (authParam.valueAsString == "True") {
+            const usernameParam = new cdk.CfnParameter(this, 'username', {
+                type: 'String',
+                description: 'Username for basic auth',
+                noEcho: true, // Hide the parameter value in AWS console
+            });
 
-        const usernameParam = new cdk.CfnParameter(this, 'username', {
-            type: 'String',
-            description: 'Username for basic auth',
-            noEcho: true, // Hide the parameter value in AWS console
-        });
-
-        const passwordParam = new cdk.CfnParameter(this, 'password', {
-            type: 'String',
-            description: 'Password for basic auth',
-            noEcho: true, // Hide the parameter value in AWS console
-        });
+            const passwordParam = new cdk.CfnParameter(this, 'password', {
+                type: 'String',
+                description: 'Password for basic auth',
+                noEcho: true, // Hide the parameter value in AWS console
+            });
+        }
 
 
         this.authFunction = new lambda.Function(this, 'cdnAuthFunction', {
@@ -43,11 +44,11 @@ export class CdnAuthStack extends cdk.Stack {
             handler: 'cloudfront.auth.lambda_handler',
             code: lambda.Code.fromAsset('../backend/'),
             role: lambda_role,
-            environment: {
-                AUTH_ENABLED: authParam.valueAsString,
-                USERNAME: usernameParamcdk.Fn.conditionIf(authCondition.logicalId, usernameParam.valueAsString, '').toString(),
-                PASSWORD: cdk.Fn.conditionIf(authCondition.logicalId, passwordParam.valueAsString, '').toString(),
-            },
+            // environment: {
+            //     AUTH_ENABLED: authParam.valueAsString,
+            //     USERNAME: cdk.Fn.conditionIf(authParam.valueAsString, usernameParam.valueAsString, '').toString(),
+            //     PASSWORD: cdk.Fn.conditionIf(authParam.valueAsString, passwordParam.valueAsString, '').toString(),
+            // },
             timeout: Duration.seconds(5)
         });
     }

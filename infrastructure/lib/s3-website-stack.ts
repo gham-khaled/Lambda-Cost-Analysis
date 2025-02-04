@@ -13,7 +13,9 @@ import {CfnOutput, Duration} from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import {HttpOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as custom from "aws-cdk-lib/custom-resources";
 import * as iam from 'aws-cdk-lib/aws-iam';
+
 
 export class S3WebsiteStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: cdk.StackProps, api: apigateway.RestApi, authLambda: lambda.Function) {
@@ -26,10 +28,27 @@ export class S3WebsiteStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
-        new BucketDeployment(this, 'MyDeployment', {
+
+        const bucketDeployment = new BucketDeployment(this, 'MyDeployment', {
             sources: [Source.asset('../frontend/dist/')],
             destinationBucket: bucket,
         });
+        bucketDeployment.node.addDependency(bucket)
+        const urlWithoutTrailingSlash = api.url.endsWith("/") ? api.url.slice(0, -1) : api.url;
+        const s3Upload = new custom.AwsCustomResource(this, 'config-env', {
+            policy: custom.AwsCustomResourcePolicy.fromSdkCalls({resources: custom.AwsCustomResourcePolicy.ANY_RESOURCE}),
+            onUpdate: {
+                service: "S3",
+                action: "putObject",
+                parameters: {
+                    Body: `VITE_API_URL=${urlWithoutTrailingSlash}`,
+                    Bucket: bucket.bucketName,
+                    Key: ".env",
+                },
+                physicalResourceId: custom.PhysicalResourceId.of(`config-env-${Date.now()}`)
+            }
+        });
+        s3Upload.node.addDependency(bucketDeployment);
         const cloudfrontOAI = new OriginAccessIdentity(this, 'cloudfront-OAI');
         bucket.grantRead(cloudfrontOAI);
 

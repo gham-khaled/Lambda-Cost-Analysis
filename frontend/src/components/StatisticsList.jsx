@@ -4,8 +4,6 @@ import {BiMemoryCard, BiSolidMemoryCard} from 'react-icons/bi'
 import Statistics from './Statistics'
 
 import {
-    AiFillCloseCircle,
-    AiFillInfoCircle,
     AiFillSave,
     AiOutlineCustomerService,
     AiOutlineFieldTime,
