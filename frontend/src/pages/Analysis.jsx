@@ -20,7 +20,7 @@ import { customToast } from '../utils/utils'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
-const PROD_API_URL = import.meta.env.VITE_PROD_API_URL
+const PROD_API_URL = process.env.PROD_API_URL
 
 const Analysis = () => {
 	const {
