@@ -11,7 +11,7 @@ import Header from '../partials/Header'
 import { summaryColumns } from '../data/optionsData'
 import { ThreeDots } from 'react-loader-spinner'
 
-const PROD_API_URL = import.meta.env.VITE_PROD_API_URL
+const PROD_API_URL = process.env.PROD_API_URL
 
 const Home = () => {
 	const [data, setData] = useState([])
