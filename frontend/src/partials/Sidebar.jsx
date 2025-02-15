@@ -129,7 +129,7 @@ const Sidebar = () => {
 					</div>
 				</div>
 				<a
-					href='https://github.com/gham-khaled/lambda-memory-analysis/tree/dashboard-v2'
+					href='https://github.com/gham-khaled/lambda-cost-analysis'
 					target='_blank'
 					className={`${sidebarOpen ? 'hidden' : 'flex'} text-white font-light bg-darkblueLight px-4 text-xs py-2 -mx-2 rounded-md`}
 				>

@@ -13,7 +13,7 @@ import {errorMsgStyle} from '../data/optionsData'
 import AnalysisContext from '../contexts/AnalysisContext'
 import {reportDetailsColumns as columns} from '../data/optionsData'
 
-const PROD_API_URL = process.env.PROD_API_URL
+const PROD_API_URL = window.PROD_URL_API
 
 const ReportDetails = () => {
     const {reportID} = useParams()

@@ -8,3 +8,4 @@ response.json
 environment.env
 /backend/data/
 functions_details.json
+/dummyLambdas/
