@@ -27,7 +27,7 @@ like [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power
   needed to determine the optimal configuration.
 
 This project serves as a **shortcut to quickly detect issues across all deployed Lambda functions**, helping cloud engineers
-identify inefficiencies without running detailed tuning tests for each function. It is **not** a comprehensive
+identify inefficiencies without running detailed analysis for each function. It is **not** a comprehensive
 cost-management tool such as **AWS Lambda Insights, tag-based cost allocation, and Lambda Power Tuning** to
 optimize serverless deployments.
 ---
