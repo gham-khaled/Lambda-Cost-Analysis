@@ -4,6 +4,10 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import {BucketDeployment, Source} from "aws-cdk-lib/aws-s3-deployment";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as custom from "aws-cdk-lib/custom-resources";
+import * as ssm from "aws-cdk-lib/aws-ssm";
+import {CfnOutput} from "aws-cdk-lib";
+import {Effect, PolicyStatement} from "aws-cdk-lib/aws-iam";
+import * as iam from "aws-cdk-lib/aws-iam";
 
 
 export interface S3WebsiteStackProps extends cdk.StackProps {
@@ -46,8 +50,16 @@ export class S3WebsiteStack extends cdk.Stack {
             }
         });
         s3Upload.node.addDependency(bucketDeployment);
-        // new cdk.CfnOutput(this, 'WebsiteURL', {
-        //     value: this.bucket.bucketWebsiteUrl,
-        // });
+        // Create SSM Parameters
+        const s3WebBucketName = new ssm.StringParameter(this, "s3WebBucketName", {
+            parameterName: "/lambda-cost-analysis/s3WebBucketName",
+            stringValue: this.bucket.bucketName,
+            tier: ssm.ParameterTier.STANDARD,
+        });
+        s3WebBucketName.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY)
+        if (!props.authEnabled) {
+            new CfnOutput(this, 'S3WebURL', {value: this.bucket.bucketWebsiteUrl});
+        }
+
     }
 }

@@ -6,11 +6,17 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import {StateMachine} from "aws-cdk-lib/aws-stepfunctions";
 import * as iam from 'aws-cdk-lib/aws-iam';
 import {Bucket} from "aws-cdk-lib/aws-s3";
+import * as ssm from "aws-cdk-lib/aws-ssm";
+
+export interface ReportApiStackProps extends cdk.StackProps {
+    readonly analysisStepFunction: StateMachine
+    readonly analysisBucket: Bucket
+}
 
 export class ReportApiStack extends cdk.Stack {
     public api: apigateway.RestApi;
 
-    constructor(scope: Construct, id: string, props: cdk.StackProps, analysisStepFunction: StateMachine, analysisBucket: Bucket) {
+    constructor(scope: Construct, id: string, props: ReportApiStackProps) {
         super(scope, id, props);
 
         const list_lambda_functions = new lambda.Function(this, 'list_lambda_functions', {
@@ -31,7 +37,7 @@ export class ReportApiStack extends cdk.Stack {
             timeout: Duration.seconds(29),
             layers: [lambda.LayerVersion.fromLayerVersionArn(this, 'pandasLayer', `arn:aws:lambda:${Aws.REGION}:336392948345:layer:AWSSDKPandas-Python310:15`)],
             environment: {
-                BUCKET_NAME: analysisBucket.bucketName
+                BUCKET_NAME: props.analysisBucket.bucketName
             }
 
         });
@@ -41,7 +47,7 @@ export class ReportApiStack extends cdk.Stack {
             code: lambda.Code.fromAsset('../backend/'),
             timeout: Duration.seconds(29),
             environment: {
-                BUCKET_NAME: analysisBucket.bucketName
+                BUCKET_NAME: props.analysisBucket.bucketName
             }
         });
 
@@ -50,11 +56,11 @@ export class ReportApiStack extends cdk.Stack {
             defaultCorsPreflightOptions: {
                 allowOrigins: apigateway.Cors.ALL_ORIGINS,
                 allowMethods: apigateway.Cors.ALL_METHODS, // Allow all methods (GET, POST, etc.)
-                allowHeaders: apigateway.Cors.DEFAULT_HEADERS
+                allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent'],
             }
         });
-        const api_resource_prefix = this.api.root.addResource(
-            'api')
+        const api_resource_prefix = this.api.root.addResource('api')
+
         api_resource_prefix.addResource('reportSummaries').addMethod('GET', new apigateway.LambdaIntegration(historical_analysis_report))
 
         api_resource_prefix.addResource('lambdaFunctions').addMethod('GET', new apigateway.LambdaIntegration(list_lambda_functions))
@@ -78,7 +84,7 @@ export class ReportApiStack extends cdk.Stack {
                 requestTemplates: {
                     'application/json': `{
             "input": "$util.escapeJavaScript($input.json('$'))",
-            "stateMachineArn": "${analysisStepFunction.stateMachineArn}"
+            "stateMachineArn": "${props.analysisStepFunction.stateMachineArn}"
           }`
                 },
                 integrationResponses: [
@@ -110,8 +116,8 @@ export class ReportApiStack extends cdk.Stack {
             ]
         });
 
-        analysisBucket.grantRead(historical_analysis_report)
-        analysisBucket.grantRead(get_analysis_report)
+        props.analysisBucket.grantRead(historical_analysis_report)
+        props.analysisBucket.grantRead(get_analysis_report)
         // TODO: Add request validation when integrating SF (Example: Lambda ARNs must be a non empty list)
     }
 }
