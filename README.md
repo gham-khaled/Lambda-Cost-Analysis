@@ -1,106 +1,116 @@
-[//]: # (# Lambda Cost Analysis)
-
-[//]: # ()
-
-[//]: # (This is an open source  blank project for CDK development with TypeScript.)
-
-[//]: # (## Deployment Commands)
-
-[//]: # (1. Install CDK CLI V2)
-
-[//]: # (2. Bootstrap The CDK environment)
-
-[//]: # (3. Update the AWS_ACCOUNT and REGION variable under infrascture/lib/infrastructure.ts)
-
-[//]: # (4. cdk bootstrap ACCOUNT-NUMBER/REGION # e.g. cdk bootstrap 1111111111/us-east-1)
-
-[//]: # (5. cd infrastructure && cdk deploy --all)
-
-[//]: # ()
-
-[//]: # (* `npm run build`   compile typescript to js)
-
-[//]: # (* `npm run watch`   watch for changes and compile)
-
-[//]: # (* `npm run test`    perform the jest unit tests)
-
-[//]: # (* `npx cdk deploy`  deploy this stack to your default AWS account/region)
-
-[//]: # (* `npx cdk diff`    compare deployed stack with current state)
-
-[//]: # (* `npx cdk synth`   emits the synthesized CloudFormation template)
-
-[//]: # ()
 # Lambda Cost Analysis
 
-This project is an open-source template for AWS CDK development using TypeScript. It provides a starting point for
-deploying AWS resources and includes example configurations and deployment commands. The primary focus is on analyzing
-and managing costs associated with AWS Lambda functions.
+This project provides an automated way to analyze AWS Lambda function costs and detect issues. Key features
+include:
 
-## Features
+- **Detect Over-Provisioned, Under-Provisioned, and Timing Out Lambdas**
+- **Perform Cost Analysis with Estimated Savings**
+- **Filter Analysis to Run Only on Specific Lambda Functions** Based on Runtime and Package Type
+- **Set Start and End Dates for Analysis** and **Consult Historical Results**
 
-- **TypeScript Support**: The project is set up with TypeScript for enhanced development experience.
-- **CDK Integration**: Easily deploy AWS resources using AWS CDK.
-- **Cost Analysis**: Built-in configurations to help analyze and optimize Lambda function costs.
+## Limitations
 
-Feel free to customize the project according to your needs and contribute improvements!
+- **Analysis Runs on the Current Lambda Configuration**: If a function's memory or CPU type changes between the start
+  and end dates, the historical analysis won't reflect those changes.
+- **Incurs Log Scanning Costs**: AWS charges **$0.005 per GB of data scanned**. Use the tool wisely to minimize costs.
+- **Analysis Only Includes Existing Lambda Functions**: Deleted functions are not analyzed.
+
+
+## Why This Project?
+
+Managing multiple AWS Lambda functions can be exhausting, especially when optimizing memory and cost. While projects
+like [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning) exist, I have faced some limitations using them:
+
+- **Manual Effort for Large-Scale Lambda Optimization**: Running individual analyses for each function and selecting the
+  right payload can be time-consuming.
+- **Payload-Dependent Memory Usage**: If a function's memory usage varies with payload size, multiple test runs are
+  needed to determine the optimal configuration.
+
+This project serves as a **shortcut to quickly detect issues across all deployed Lambda functions**, helping cloud engineers
+identify inefficiencies without running detailed tuning tests for each function. It is **not** a comprehensive
+cost-management tool such as **AWS Lambda Insights, tag-based cost allocation, and Lambda Power Tuning** to
+optimize serverless deployments.
+---
+
+## Architecture
+
+![Architecture](Lambda_Cost_analysis.drawio.png)
+
+---
 
 ## Deployment Commands
 
 To get started with deploying and managing your CDK stack, follow these steps:
 
-1. **Install CDK CLI V2**
+1. **Install Frontend Dependencies and Build**
+
+   Navigate to the frontend directory and install the required dependencies. Then, build the frontend:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   ```
+2. **Install AWS CDK CLI**
 
    Ensure that the AWS CDK CLI is installed. You can install it globally using npm:
 
    ```bash
    npm install -g aws-cdk@2
-    ```
-2. **Update Configuration**
+   ```
 
-Update the `AWS_ACCOUNT` and `REGION` variables in `infrastructure/lib/infrastructure.ts` to match your AWS account and
-region.
+3. **Install CDK Dependencies**
 
-3. **Bootstrap The CDK Environment**
+   Navigate to the infrastructure directory and install the required dependencies:
 
-    Prepare your AWS environment for CDK deployments. Do it only once.
    ```bash
-   npm cdk bootstrap
-    ```
+   npm install 
+   ```
 
-## Parameters
+4. **Bootstrap the Target Region and us-east-1 for Lambda @Edge**:
 
-| Parameter | Type   | Description                                                      | Mandatory                                 |
-|-----------|--------|------------------------------------------------------------------|-------------------------------------------|
-| `auth`    | String | Enable or disable basic auth (`True`/`False`).                   | Yes                                       |
-| `username`| String | Username for basic auth.                                         | Yes, if `auth` is set to `True`           |
-| `password`| String | Password for basic auth.                                         | Yes, if `auth` is set to `True`           |
+   Run the following commands to bootstrap both the target region and `us-east-1` (Lambda @Edge region) in case you need
+   to include authentication:
 
-## Bootstrapping Your CDK Environment
+   ```bash
+   cdk bootstrap aws://YOUR_ACCOUNT_ID/TARGET_REGION
 
-Before deploying the stack, you need to bootstrap your CDK environment. This step prepares your AWS environment for deploying resources using AWS CDK.
+   cdk bootstrap aws://YOUR_ACCOUNT_ID/us-east-1
+   ```
+   
+5. **Deploy the Stack**:
 
-To bootstrap your environment, run the following command:
+   To deploy the entire stack, use the following command:
 
-```bash
-cdk bootstrap
-```
+   ```bash
+   npm run deploy --all
+   ```
 
-## Deploying
+   If you want to deploy with basic auth, run the deployment with the following command, replacing `testUsername` and
+   `testPassword` with your desired username and password:
 
-To deploy this stack, you need to have AWS CDK installed and configured. Then run the following command:
+   ```bash
+   npm run deploy -c auth=true -c username=testUsername -c password=testPassword
+   ```
 
-```bash
-cdk deploy --parameters auth=True --parameters username=YOUR_USERNAME --parameters password=YOUR_PASSWORD
-```
+### Parameters
 
-## Retrieving Username and Password
+| Parameter  | Type   | Description                                    | Mandatory                       |
+|------------|--------|------------------------------------------------|---------------------------------|
+| `auth`     | String | Enable or disable basic auth (`True`/`False`). | Yes                             |
+| `username` | String | Username for basic auth.                       | Yes, if `auth` is set to `True` |
+| `password` | String | Password for basic auth.                       | Yes, if `auth` is set to `True` |
+
+### Retrieving & Update Username and Password
 
 If you forget the username or password, you can retrieve them by navigating to the AWS Management Console and checking
-the environment variables of the deployed Lambda function. Follow these steps:
+the SSM Parameters /lambda-analytics/username & /lambda-analytics/password
 
-1. Open the [AWS Lambda Console](https://console.aws.amazon.com/lambda).
-2. Select the deployed Lambda function from the list.
-3. In the function's configuration tab, check the environment variables section to find the `USERNAME` and `PASSWORD`
-   values.
-   """
+## Roadmap
+
+Future improvements include:
+
+- **Multi-Region Analysis**
+- **Include Cloudwatch Query Cost for each Analysis**
+- **Cost Analysis for Other Serverless Services** (e.g., DynamoDB, S3)
+- **Multi-Account Analysis**
