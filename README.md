@@ -30,6 +30,7 @@ This project serves as a **shortcut to quickly detect issues across all deployed
 identify inefficiencies without running detailed analysis for each function. It is **not** a comprehensive
 cost-management tool such as **AWS Lambda Insights, tag-based cost allocation, and Lambda Power Tuning** to
 optimize serverless deployments.
+
 ---
 
 ## Architecture
