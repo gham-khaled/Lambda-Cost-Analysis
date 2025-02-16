@@ -61,12 +61,14 @@ def run_cloudwatch_query(log_group_name, start_datetime, end_datetime, memory_si
     gb_second_storage_price = '0.0000000309'
     query = f"""
     fields @timestamp, @message 
-    | parse @message "Process exited before completing request" as memory_exceeded
-    | parse @message "Task timed out after *" as timeout_number 
+    | parse @message "Process exited before completing request" as memory_exceeded_1
+    | parse @message "[ERROR] MemoryError" as memory_exceeded_2
+    | parse @message "Task timed out after *" as timeout_number_1 
+    | parse @message "Status: timeout" as timeout_number_2
     | parse @message "REPORT RequestId: *" as REPORT
-    | stats  greatest(count(timeout_number), 0) as timeoutInvocations,
+    | stats  greatest(count(timeout_number_1) , 0) + greatest(count(timeout_number_2) , 0) as timeoutInvocations,
     count(REPORT) as countInvocations,
-    greatest(count(memory_exceeded), 0) as memoryExceededInvocation,
+    greatest(count(memory_exceeded_1) , 0) + greatest(count(memory_exceeded_2) , 0) as memoryExceededInvocation,
     0.20 / 1000000 as singleInvocationCost,
     {gb_second_memory_price} as GBSecondMemoryPrice,
     {gb_second_storage_price} as GBSecondStoragePrice,
