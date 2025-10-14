@@ -1,7 +1,12 @@
 import json
+import logging
 import os
 from utils.sf_utils import upload_divided_params
 from utils.s3_utils import upload_file_to_s3
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 bucket_name = os.environ['BUCKET_NAME']
 max_arn_per_invocation = 5
@@ -29,4 +34,4 @@ def lambda_handler(event, context):
 if __name__ == '__main__':
     test = "{\"allDurationInSeconds\":101.689,\"avgProvisionedMemoryMB\":122.0703,\"MemoryCost\":0.000202,\"InvocationCost\":0.0000088,\"totalCost\":0.0002108,\"avgCostPerInvocation\":0.000004792,\"avgMaxMemoryUsedMB\":80.1086,\"avgOverProvisionedMB\":41.9617,\"optimalTotalCost\":0.0002119,\"potentialSavings\":0.0,\"avgDurationPerInvocation\":2.3111,\"status\":\"Completed\"}"
 
-    print(json.dumps(json.loads(test), indent=4))
+    logger.info(json.dumps(json.loads(test), indent=4))

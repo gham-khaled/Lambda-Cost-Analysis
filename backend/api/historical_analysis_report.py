@@ -1,8 +1,13 @@
 import json
 import boto3
+import logging
 import os
 
 from api.cors_decorator import cors_header
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 s3_client = boto3.client('s3')
 
@@ -14,7 +19,7 @@ prefix = 'summaries/'
 @cors_header
 def lambda_handler(event, context):
     parameters = event.get('queryStringParameters', {})
-    print(f"Parameters: {parameters}")
+    logger.info(f"Parameters: {parameters}")
     continuation_token = parameters.get('continuationToken', None)
     max_keys = int(parameters.get('rowsPerPage', 10))
 
@@ -74,4 +79,4 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    print(lambda_handler({}, None))
+    logger.info(lambda_handler({}, None))

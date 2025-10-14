@@ -1,7 +1,12 @@
 import boto3
 import json
+import logging
 
 from api.cors_decorator import cors_header
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 client = boto3.client('lambda')
 
@@ -43,4 +48,4 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    print(lambda_handler(None, None))
+    logger.info(lambda_handler(None, None))

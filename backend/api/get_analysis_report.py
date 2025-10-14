@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from io import StringIO
 
@@ -8,6 +9,10 @@ from botocore.exceptions import ClientError
 
 from api.cors_decorator import cors_header
 from utils.s3_utils import download_from_s3
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 s3_client = boto3.client('s3')
 
@@ -61,5 +66,5 @@ def lambda_handler(event, context):
 if __name__ == '__main__':
     event = {'queryStringParameters': {'reportID': 'running'}}
     result = lambda_handler(event, None)
-    print(result)
-    print(json.loads(result['body']))
+    logger.info(result)
+    logger.info(json.loads(result['body']))

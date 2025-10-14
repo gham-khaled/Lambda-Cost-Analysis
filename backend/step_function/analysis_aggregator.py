@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime
 from io import StringIO, BytesIO
@@ -7,6 +8,10 @@ import pandas as pd
 
 from utils.multithread_utils import multi_thread
 from utils.s3_utils import download_from_s3, upload_file_to_s3
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 bucket_name = os.environ['BUCKET_NAME']
 
@@ -21,7 +26,7 @@ def lambda_handler(event, context):
     report_id = event[0]['report_id']
     start_date = event[0]['start_date']
     end_date = event[0]['end_date']
-    print(event)
+    logger.info(f"Aggregating data for report {report_id}: {event}")
     aggregated_data = pd.DataFrame()
     files_content = multi_thread(download_csv_file_wrapper, event, max_workers=10)
     for content in files_content:

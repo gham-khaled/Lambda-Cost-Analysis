@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 import uuid
@@ -14,6 +15,10 @@ import botocore
 from utils.s3_utils import upload_file_to_s3
 from utils.sf_utils import download_parameters_from_s3
 
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 cloudwatch_client = boto3.client("logs")
 lambda_client = boto3.client("lambda")
 bucket_name = os.environ['BUCKET_NAME']
@@ -24,7 +29,7 @@ def lambda_handler(event, context):
     report_id = event.get('report_id')
     start_date = event.get('start_date')
     end_date = event.get('end_date')
-    print(lambda_functions_name, event)
+    logger.info(f"Processing lambda functions: {lambda_functions_name}, event: {event}")
     return generate_cost_report(lambda_functions_name, report_id, start_date, end_date)
 
 
@@ -44,7 +49,7 @@ def get_lambda_cost(lambda_name, start_date, end_date):
         return None
 
     results = query_response[0]
-    print(lambda_name, results)
+    logger.info(f"Query results for {lambda_name}: {results}")
 
     answer = {"functionName": lambda_name, "runtime": runtime, "architecture": architecture}
     for result in results:
@@ -109,13 +114,13 @@ def run_cloudwatch_query(log_group_name, start_datetime, end_datetime, memory_si
         while not response or response["status"] != "Complete":
             time.sleep(3)
             response = cloudwatch_client.get_query_results(queryId=query_id)
-            print(log_group_name, response['status'])
+            logger.debug(f"Query status for {log_group_name}: {response['status']}")
 
-        print(log_group_name, str(response)[:20])
+        logger.debug(f"Query response for {log_group_name}: {str(response)[:20]}")
 
     except cloudwatch_client.exceptions.MalformedQueryException as e:
-        print(f"Error While Generating Report for: {log_group_name}")
-        print(e)
+        logger.error(f"Error while generating report for: {log_group_name}")
+        logger.error(f"Exception: {e}")
         return None
 
     return response["results"]
@@ -131,13 +136,13 @@ def check_log_group_exist(log_group_name):
 
 def generate_cost_report(lambda_list, report_id, start_date, end_date):
     lambda_costs = []
-    print(f"Processing: {lambda_list}")
+    logger.info(f"Processing lambda functions: {lambda_list}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(get_lambda_cost, l, start_date, end_date) for l in lambda_list]
         for future in concurrent.futures.as_completed(futures):
             lambda_costs.append(future.result())
     lambda_costs = [item for item in lambda_costs if item is not None]
-    # print(lambda_costs)
+    logger.debug(f"Lambda costs: {lambda_costs}")
     csv_buffer = StringIO()
 
     fieldnames = ["functionName",
@@ -167,7 +172,7 @@ def generate_cost_report(lambda_list, report_id, start_date, end_date):
     filename = f"{str(uuid.uuid4())}.csv"
     directory = f"single_analysis/{report_id}"
     upload_file_to_s3(body=csv_buffer.getvalue(), bucket_name=bucket_name, file_name=filename, directory=directory)
-    print(f"{lambda_list} for Report {report_id} have been uploaded to {filename}")
+    logger.info(f"Lambda functions {lambda_list} for Report {report_id} have been uploaded to {filename}")
     return {"filename": filename, "bucket": bucket_name, "directory": directory, 'report_id': report_id,
             "start_date": start_date, "end_date": end_date}
 
