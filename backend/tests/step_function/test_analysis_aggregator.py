@@ -1,21 +1,21 @@
 import csv
 import json
 import os
-import pytest
 from io import StringIO
 
 import boto3
+import pytest
 from moto import mock_aws
 
 
 @pytest.fixture
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
-    os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
 @pytest.fixture
@@ -23,10 +23,10 @@ def s3_bucket(aws_credentials):
     """Create a mocked S3 bucket."""
     bucket_name = "test-bucket"
     with mock_aws():
-        s3 = boto3.resource("s3", region_name='us-east-1')
+        s3 = boto3.resource("s3", region_name="us-east-1")
         bucket = s3.Bucket(bucket_name)
         bucket.create()
-        os.environ['BUCKET_NAME'] = bucket_name
+        os.environ["BUCKET_NAME"] = bucket_name
         yield bucket_name
 
 
@@ -35,7 +35,7 @@ def write_csv_file(csv_dict_content):
     csv_buffer = StringIO()
     field_names = csv_dict_content[0].keys()
 
-    writer = csv.DictWriter(csv_buffer, fieldnames=field_names, extrasaction='ignore')
+    writer = csv.DictWriter(csv_buffer, fieldnames=field_names, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(csv_dict_content)
     return csv_buffer
@@ -44,13 +44,13 @@ def write_csv_file(csv_dict_content):
 @mock_aws
 def test_file_merge(s3_bucket):
     """Testing that the CSV files are merged correctly."""
-    from utils.s3_utils import download_from_s3, upload_file_to_s3
     from step_function.analysis_aggregator import lambda_handler
+    from utils.s3_utils import download_from_s3, upload_file_to_s3
 
-    report_id = 'test-report'
-    start_date = 'X'
-    end_date = 'X'
-    directory = f'single_analysis/{report_id}'
+    report_id = "test-report"
+    start_date = "X"
+    end_date = "X"
+    directory = f"single_analysis/{report_id}"
 
     file1 = [
         {
@@ -69,7 +69,7 @@ def test_file_merge(s3_bucket):
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
             "memoryExceededInvocation": 0,
-            "timeoutInvocations": 0
+            "timeoutInvocations": 0,
         }
     ]
     file2 = [
@@ -89,16 +89,22 @@ def test_file_merge(s3_bucket):
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
             "memoryExceededInvocation": 0,
-            "timeoutInvocations": 0
+            "timeoutInvocations": 0,
         }
     ]
 
-    upload_file_to_s3(body=write_csv_file(file1).getvalue(), bucket_name=s3_bucket,
-                      file_name='file1.csv',
-                      directory=directory)
-    upload_file_to_s3(body=write_csv_file(file2).getvalue(), bucket_name=s3_bucket,
-                      file_name='file2.csv',
-                      directory=directory)
+    upload_file_to_s3(
+        body=write_csv_file(file1).getvalue(),
+        bucket_name=s3_bucket,
+        file_name="file1.csv",
+        directory=directory,
+    )
+    upload_file_to_s3(
+        body=write_csv_file(file2).getvalue(),
+        bucket_name=s3_bucket,
+        file_name="file2.csv",
+        directory=directory,
+    )
 
     event = [
         {
@@ -107,7 +113,7 @@ def test_file_merge(s3_bucket):
             "directory": directory,
             "report_id": report_id,
             "start_date": start_date,
-            "end_date": end_date
+            "end_date": end_date,
         },
         {
             "filename": "file2.csv",
@@ -115,25 +121,25 @@ def test_file_merge(s3_bucket):
             "directory": directory,
             "report_id": report_id,
             "start_date": start_date,
-            "end_date": end_date
-        }
+            "end_date": end_date,
+        },
     ]
     lambda_handler(event, None)
-    csv_body = download_from_s3('analysis.csv', s3_bucket, report_id)
+    csv_body = download_from_s3("analysis.csv", s3_bucket, report_id)
     csv_file = StringIO(csv_body)
 
     # Use the csv.DictReader to read the CSV file and convert it to a list of dictionaries
     reader = csv.DictReader(csv_file)
     data_list = [dict(row) for row in reader]
     for data in data_list:
-        del data['']
+        del data[""]
     files_merge = file1 + file2
     for file in files_merge:
         for key, value in list(file.items()):
             file[key] = str(value)
 
-    files_merge = sorted(files_merge, key=lambda x: x['functionName'])
-    data_list = sorted(data_list, key=lambda x: x['functionName'])
+    files_merge = sorted(files_merge, key=lambda x: x["functionName"])
+    data_list = sorted(data_list, key=lambda x: x["functionName"])
 
     assert len(data_list) == 2
     assert data_list == files_merge
@@ -142,13 +148,13 @@ def test_file_merge(s3_bucket):
 @mock_aws
 def test_summary_file(s3_bucket):
     """Testing that the summary file is created correctly."""
-    from utils.s3_utils import download_from_s3, upload_file_to_s3
     from step_function.analysis_aggregator import lambda_handler
+    from utils.s3_utils import download_from_s3, upload_file_to_s3
 
-    report_id = 'test-report'
-    directory = f'single_analysis/{report_id}'
-    start_date = 'X'
-    end_date = 'X'
+    report_id = "test-report"
+    directory = f"single_analysis/{report_id}"
+    start_date = "X"
+    end_date = "X"
     file1 = [
         {
             "functionName": "LambdaA",
@@ -166,7 +172,7 @@ def test_summary_file(s3_bucket):
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
             "memoryExceededInvocation": 5,
-            "timeoutInvocations": 2
+            "timeoutInvocations": 2,
         },
         {
             "functionName": "LambdaB",
@@ -184,8 +190,8 @@ def test_summary_file(s3_bucket):
             "potentialSavings": 0.5,
             "avgDurationPerInvocation": 3,
             "memoryExceededInvocation": 0,
-            "timeoutInvocations": 1
-        }
+            "timeoutInvocations": 1,
+        },
     ]
     file2 = [
         {
@@ -204,16 +210,22 @@ def test_summary_file(s3_bucket):
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
             "memoryExceededInvocation": 0,
-            "timeoutInvocations": 0
+            "timeoutInvocations": 0,
         }
     ]
 
-    upload_file_to_s3(body=write_csv_file(file1).getvalue(), bucket_name=s3_bucket,
-                      file_name='file1.csv',
-                      directory=directory)
-    upload_file_to_s3(body=write_csv_file(file2).getvalue(), bucket_name=s3_bucket,
-                      file_name='file2.csv',
-                      directory=directory)
+    upload_file_to_s3(
+        body=write_csv_file(file1).getvalue(),
+        bucket_name=s3_bucket,
+        file_name="file1.csv",
+        directory=directory,
+    )
+    upload_file_to_s3(
+        body=write_csv_file(file2).getvalue(),
+        bucket_name=s3_bucket,
+        file_name="file2.csv",
+        directory=directory,
+    )
 
     event = [
         {
@@ -222,7 +234,7 @@ def test_summary_file(s3_bucket):
             "directory": directory,
             "report_id": report_id,
             "start_date": start_date,
-            "end_date": end_date
+            "end_date": end_date,
         },
         {
             "filename": "file2.csv",
@@ -230,11 +242,13 @@ def test_summary_file(s3_bucket):
             "directory": directory,
             "report_id": report_id,
             "start_date": start_date,
-            "end_date": end_date
-        }
+            "end_date": end_date,
+        },
     ]
     lambda_handler(event, None)
-    report = json.loads(download_from_s3('summary.json', bucket_name=s3_bucket, directory=report_id))
+    report = json.loads(
+        download_from_s3("summary.json", bucket_name=s3_bucket, directory=report_id)
+    )
 
     expected_report = {
         "allDurationInSeconds": 97.0,
@@ -252,6 +266,6 @@ def test_summary_file(s3_bucket):
         "reportID": report_id,
         "startDate": start_date,
         "endDate": end_date,
-        "status": "Completed"
+        "status": "Completed",
     }
     assert report == expected_report

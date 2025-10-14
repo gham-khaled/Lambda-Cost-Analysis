@@ -121,4 +121,3 @@ export class ReportApiStack extends cdk.Stack {
         // TODO: Add request validation when integrating SF (Example: Lambda ARNs must be a non empty list)
     }
 }
-

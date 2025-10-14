@@ -211,7 +211,7 @@ const PageNotFound = ({ code = '404', message = 'Resource Not Found' }) => {
 								fill='#FF8900'
 							/>
 						</svg>
-						
+
 					</div> */}
 				</div>
 			</div>

@@ -64,7 +64,7 @@ To get started with deploying and managing your CDK stack, follow these steps:
    Navigate to the infrastructure directory and install the required dependencies:
 
    ```bash
-   npm install 
+   npm install
    ```
 
 4. **Bootstrap the Target Region and us-east-1 for Lambda @Edge**:
@@ -77,7 +77,7 @@ To get started with deploying and managing your CDK stack, follow these steps:
 
    cdk bootstrap aws://YOUR_ACCOUNT_ID/us-east-1
    ```
-   
+
 5. **Deploy the Stack**:
 
    To deploy the entire stack, use the following command:

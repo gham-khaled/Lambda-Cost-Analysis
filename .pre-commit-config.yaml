@@ -1,0 +1,45 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+    - id: check-yaml
+    - id: check-json
+    - id: check-xml
+    - id: check-merge-conflict
+    - id: end-of-file-fixer
+    - id: name-tests-test
+      args: [ --pytest-test-first ]
+    - id: trailing-whitespace
+    - id: requirements-txt-fixer
+    - id: check-added-large-files
+      args: [ --maxkb=100 ]
+      exclude: uv.lock
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.8.4
+  hooks:
+    - id: ruff
+      types_or: [ python, pyi, jupyter ]
+      args: [ --fix ]
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.0
+    hooks:
+    -   id: mypy
+        args: [--strict, --ignore-missing-imports]
+        exclude: ((tests|docs|cloudfront)\/.*)|(.*\/__init__\.py)
+
+- repo: https://github.com/psf/black-pre-commit-mirror
+  rev: 24.10.0
+  hooks:
+    - id: black
+
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+    - id: isort
+
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.8.1
+  hooks:
+    - id: nbstripout

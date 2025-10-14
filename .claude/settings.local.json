@@ -4,7 +4,10 @@
       "Bash(uv init:*)",
       "Bash(uv add:*)",
       "Bash(uv run:*)",
-      "Bash(uv pip:*)"
+      "Bash(uv pip:*)",
+      "Bash(pre-commit run:*)",
+      "Read(//Users/khaledghamgui/Desktop/Projects/**)",
+      "Bash(PYTHONPATH=backend uv run pytest:*)"
     ],
     "deny": [],
     "ask": []
