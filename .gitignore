@@ -9,3 +9,7 @@ environment.env
 /backend/data/
 functions_details.json
 /dummyLambdas/
+
+# uv
+.venv/
+uv.lock

@@ -1,0 +1,14 @@
+[project]
+name = "lambda-cost-analysis"
+version = "0.1.0"
+description = "Automated AWS Lambda cost analysis and optimization tool"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.40.52",
+    "pandas>=2.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "moto>=5.1.14",
+]
