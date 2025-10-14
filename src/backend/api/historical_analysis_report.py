@@ -6,7 +6,8 @@ import os
 from typing import Any
 
 import boto3
-from api.cors_decorator import cors_header
+
+from backend.api.cors_decorator import cors_header
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ bucket_name = os.environ["BUCKET_NAME"]
 prefix = "summaries/"
 
 
-@cors_header  # type: ignore[misc]
+@cors_header
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Retrieve paginated list of historical analysis reports.

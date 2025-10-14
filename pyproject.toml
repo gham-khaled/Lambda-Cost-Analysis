@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "lambda-cost-analysis"
 version = "0.1.0"
@@ -17,6 +21,9 @@ dev = [
     "pytest-mock>=3.15.1",
     "types-boto3>=1.40.52",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/backend"]
 
 [tool.numpydoc_validation]
 checks = [

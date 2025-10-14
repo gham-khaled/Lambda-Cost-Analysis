@@ -21,8 +21,8 @@ export class ReportApiStack extends cdk.Stack {
 
         const list_lambda_functions = new lambda.Function(this, 'list_lambda_functions', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'api.list_lambda_functions.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.api.list_lambda_functions.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(29)
         });
         const listFunctionsPolicy = new iam.PolicyStatement({
@@ -32,8 +32,8 @@ export class ReportApiStack extends cdk.Stack {
         list_lambda_functions.addToRolePolicy(listFunctionsPolicy)
         const get_analysis_report = new lambda.Function(this, 'get_analysis_report', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'api.get_analysis_report.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.api.get_analysis_report.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(29),
             layers: [lambda.LayerVersion.fromLayerVersionArn(this, 'pandasLayer', `arn:aws:lambda:${Aws.REGION}:336392948345:layer:AWSSDKPandas-Python310:15`)],
             environment: {
@@ -43,8 +43,8 @@ export class ReportApiStack extends cdk.Stack {
         });
         const historical_analysis_report = new lambda.Function(this, 'historical_analysis_report', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'api.historical_analysis_report.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.api.historical_analysis_report.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(29),
             environment: {
                 BUCKET_NAME: props.analysisBucket.bucketName

@@ -53,7 +53,7 @@ jobs:
 
     - name: Run pytest
       run: |
-        PYTHONPATH=backend uv run pytest backend/tests -v --tb=short
+        uv run pytest tests -v --tb=short
       env:
         AWS_ACCESS_KEY_ID: testing
         AWS_SECRET_ACCESS_KEY: testing

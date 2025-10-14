@@ -8,9 +8,10 @@ from typing import Any
 
 import boto3
 import pandas as pd
-from api.cors_decorator import cors_header
 from botocore.exceptions import ClientError
-from utils.s3_utils import download_from_s3
+
+from backend.api.cors_decorator import cors_header
+from backend.utils.s3_utils import download_from_s3
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ s3_client = boto3.client("s3")
 bucket_name = os.environ["BUCKET_NAME"]
 
 
-@cors_header  # type: ignore[misc]
+@cors_header
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Retrieve analysis report by report ID.
@@ -48,10 +49,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     try:
         # Fetch the S3 object
-        summary = download_from_s3(
+        summary_str = download_from_s3(
             file_name="summary.json", bucket_name=bucket_name, directory=report_id
         )
-        summary = json.loads(summary)
+        summary: dict[str, Any] = json.loads(summary_str)
         if summary["status"] in ["Running", "Error"]:
             return {
                 "statusCode": 200,

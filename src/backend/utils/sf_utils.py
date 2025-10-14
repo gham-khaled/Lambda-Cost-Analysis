@@ -5,8 +5,8 @@ from datetime import datetime
 from functools import partial
 from typing import Any
 
-from utils.multithread_utils import multi_thread
-from utils.s3_utils import download_from_s3, upload_file_to_s3
+from backend.utils.multithread_utils import multi_thread
+from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
 
 s3_params_bucket = "step-functions-params"
 
@@ -46,7 +46,7 @@ def upload_params(
         upload_single_params_file, bucket_name=bucket_name, directory=directory_name
     )
     s3_params = multi_thread(partial_upload_single_params_file, params_filename, 20)
-    return s3_params  # type: ignore[no-any-return]
+    return s3_params
 
 
 def upload_single_params_file(

@@ -103,7 +103,7 @@ def lambda_functions(aws_credentials):
 @mock_aws
 def test_successful_list_all_function(lambda_functions):
     """Test that the Lambda function successfully retrieves all functions."""
-    from api.list_lambda_functions import lambda_handler
+    from backend.api.list_lambda_functions import lambda_handler
 
     parameters = {
         "selectedRuntime": [
@@ -172,7 +172,7 @@ def test_successful_list_all_function(lambda_functions):
 @mock_aws
 def test_runtime_filter(lambda_functions):
     """Test that the Lambda function successfully filters by runtime."""
-    from api.list_lambda_functions import lambda_handler
+    from backend.api.list_lambda_functions import lambda_handler
 
     parameters = {
         "selectedRuntime": [

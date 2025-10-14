@@ -5,7 +5,8 @@ import logging
 from typing import Any
 
 import boto3
-from api.cors_decorator import cors_header
+
+from backend.api.cors_decorator import cors_header
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ lambda_functions = fetch_lambda_function()
 
 
 # TODO: Add more information in the response body
-@cors_header  # type: ignore[misc]
+@cors_header
 def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
     """
     List all Lambda functions in the AWS account.

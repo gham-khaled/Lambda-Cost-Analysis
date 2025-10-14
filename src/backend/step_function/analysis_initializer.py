@@ -5,8 +5,8 @@ import logging
 import os
 from typing import Any
 
-from utils.s3_utils import upload_file_to_s3
-from utils.sf_utils import upload_divided_params
+from backend.utils.s3_utils import upload_file_to_s3
+from backend.utils.sf_utils import upload_divided_params
 
 # Configure logger
 logger = logging.getLogger(__name__)

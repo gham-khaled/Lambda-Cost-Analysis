@@ -31,7 +31,7 @@ def s3_bucket(aws_credentials):
 @mock_aws
 def test_no_file_found(s3_bucket):
     """Testing the right response when no file is found."""
-    from api.historical_analysis_report import lambda_handler
+    from backend.api.historical_analysis_report import lambda_handler
 
     response = lambda_handler({}, None)
     response_body = json.loads(response["body"])
@@ -41,8 +41,8 @@ def test_no_file_found(s3_bucket):
 @mock_aws
 def test_function_succeeding(s3_bucket):
     """Testing that the S3 object summaries will be returned correctly if found."""
-    from api.historical_analysis_report import lambda_handler
-    from utils.s3_utils import upload_file_to_s3
+    from backend.api.historical_analysis_report import lambda_handler
+    from backend.utils.s3_utils import upload_file_to_s3
 
     prefix_name = "summaries"
     json_load_1 = {
@@ -91,8 +91,8 @@ def test_function_succeeding(s3_bucket):
 @mock_aws
 def test_function_pagination(s3_bucket):
     """Testing that the pagination is working correctly."""
-    from api.historical_analysis_report import lambda_handler
-    from utils.s3_utils import upload_file_to_s3
+    from backend.api.historical_analysis_report import lambda_handler
+    from backend.utils.s3_utils import upload_file_to_s3
 
     prefix_name = "summaries"
     json_load_1 = {

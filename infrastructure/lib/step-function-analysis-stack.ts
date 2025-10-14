@@ -38,8 +38,8 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
 
         const analysisAggregator = new lambda.Function(this, 'analysis_aggregator', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'step_function.analysis_aggregator.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.step_function.analysis_aggregator.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(900),
             layers: [pandasLayer],
             environment: {
@@ -48,8 +48,8 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
         });
         const analysisGenerator = new lambda.Function(this, 'analysis_generator', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'step_function.analysis_generator.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.step_function.analysis_generator.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(900),
             role: describeLogGroupsRole,
             environment: {
@@ -58,8 +58,8 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
         });
         const analysisInitializer = new lambda.Function(this, 'analysis_initializer', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'step_function.analysis_initializer.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.step_function.analysis_initializer.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             timeout: Duration.seconds(900),
 
             environment: {

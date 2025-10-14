@@ -11,8 +11,9 @@ from io import StringIO
 from typing import Any
 
 import boto3
-from utils.s3_utils import upload_file_to_s3
-from utils.sf_utils import download_parameters_from_s3
+
+from backend.utils.s3_utils import upload_file_to_s3
+from backend.utils.sf_utils import download_parameters_from_s3
 
 # Configure logger
 logger = logging.getLogger(__name__)

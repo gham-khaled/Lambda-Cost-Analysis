@@ -85,13 +85,13 @@ def test_moto_supports_cloudwatch_insights():
 
 
 @mock_aws
-@patch("step_function.analysis_generator.cloudwatch_client")
-@patch("step_function.analysis_generator.lambda_client")
+@patch("backend.step_function.analysis_generator.cloudwatch_client")
+@patch("backend.step_function.analysis_generator.lambda_client")
 def test_get_lambda_cost_full_logic(
     mock_lambda_client, mock_cloudwatch_client, mock_query_results, aws_credentials
 ):
     """Test the full get_lambda_cost function logic with mocked AWS responses."""
-    from step_function.analysis_generator import get_lambda_cost
+    from backend.step_function.analysis_generator import get_lambda_cost
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {
@@ -150,13 +150,13 @@ def test_get_lambda_cost_full_logic(
 
 
 @mock_aws
-@patch("step_function.analysis_generator.cloudwatch_client")
-@patch("step_function.analysis_generator.lambda_client")
+@patch("backend.step_function.analysis_generator.cloudwatch_client")
+@patch("backend.step_function.analysis_generator.lambda_client")
 def test_get_lambda_cost_no_log_group(
     mock_lambda_client, mock_cloudwatch_client, aws_credentials
 ):
     """Test get_lambda_cost when log group doesn't exist."""
-    from step_function.analysis_generator import get_lambda_cost
+    from backend.step_function.analysis_generator import get_lambda_cost
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {
@@ -180,13 +180,13 @@ def test_get_lambda_cost_no_log_group(
 
 
 @mock_aws
-@patch("step_function.analysis_generator.cloudwatch_client")
-@patch("step_function.analysis_generator.lambda_client")
+@patch("backend.step_function.analysis_generator.cloudwatch_client")
+@patch("backend.step_function.analysis_generator.lambda_client")
 def test_get_lambda_cost_no_invocations(
     mock_lambda_client, mock_cloudwatch_client, aws_credentials
 ):
     """Test get_lambda_cost when there are no invocations."""
-    from step_function.analysis_generator import get_lambda_cost
+    from backend.step_function.analysis_generator import get_lambda_cost
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {

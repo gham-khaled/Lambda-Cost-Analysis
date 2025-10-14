@@ -31,8 +31,8 @@ def s3_bucket(aws_credentials):
 @mock_aws
 def test_successful_file_retrieval(s3_bucket):
     """Test that the Lambda function successfully retrieves a file from S3."""
-    from api.get_analysis_report import lambda_handler
-    from utils.s3_utils import upload_file_to_s3
+    from backend.api.get_analysis_report import lambda_handler
+    from backend.utils.s3_utils import upload_file_to_s3
 
     sample_report_id = "sample.json"
     sample_content = {"status": "Completed"}
@@ -52,7 +52,7 @@ def test_successful_file_retrieval(s3_bucket):
 @mock_aws
 def test_file_not_found(s3_bucket):
     """Test that the Lambda function returns an error when the file is not found."""
-    from api.get_analysis_report import lambda_handler
+    from backend.api.get_analysis_report import lambda_handler
 
     event = {"queryStringParameters": {"reportID": "nonexistent.json"}}
 
@@ -67,7 +67,7 @@ def test_file_not_found(s3_bucket):
 @mock_aws
 def test_missing_filename_parameter(s3_bucket):
     """Test that the Lambda function returns an error when the filename parameter is missing."""
-    from api.get_analysis_report import lambda_handler
+    from backend.api.get_analysis_report import lambda_handler
 
     event = {"queryStringParameters": {}}
 

@@ -44,8 +44,8 @@ def write_csv_file(csv_dict_content):
 @mock_aws
 def test_file_merge(s3_bucket):
     """Testing that the CSV files are merged correctly."""
-    from step_function.analysis_aggregator import lambda_handler
-    from utils.s3_utils import download_from_s3, upload_file_to_s3
+    from backend.step_function.analysis_aggregator import lambda_handler
+    from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
 
     report_id = "test-report"
     start_date = "X"
@@ -148,8 +148,8 @@ def test_file_merge(s3_bucket):
 @mock_aws
 def test_summary_file(s3_bucket):
     """Testing that the summary file is created correctly."""
-    from step_function.analysis_aggregator import lambda_handler
-    from utils.s3_utils import download_from_s3, upload_file_to_s3
+    from backend.step_function.analysis_aggregator import lambda_handler
+    from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
 
     report_id = "test-report"
     directory = f"single_analysis/{report_id}"

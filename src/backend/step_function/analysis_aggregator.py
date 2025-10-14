@@ -7,8 +7,9 @@ from io import StringIO
 from typing import Any
 
 import pandas as pd
-from utils.multithread_utils import multi_thread
-from utils.s3_utils import download_from_s3, upload_file_to_s3
+
+from backend.utils.multithread_utils import multi_thread
+from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
 
 # Configure logger
 logger = logging.getLogger(__name__)

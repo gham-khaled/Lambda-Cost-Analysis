@@ -47,8 +47,8 @@ export class CdnAuthStack extends cdk.Stack {
 
         this.authFunction = new lambda.Function(this, 'cdnAuthFunction', {
             runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'cloudfront.auth.lambda_handler',
-            code: lambda.Code.fromAsset('../backend/'),
+            handler: 'backend.cloudfront.auth.lambda_handler',
+            code: lambda.Code.fromAsset('../src/'),
             role: lambda_role,
             timeout: Duration.seconds(5)
         });
