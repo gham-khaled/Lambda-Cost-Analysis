@@ -42,7 +42,7 @@ def write_csv_file(csv_dict_content):
 
 
 @mock_aws
-def test_file_merge(s3_bucket):
+def test_file_merge(s3_bucket, lambda_context):
     """Testing that the CSV files are merged correctly."""
     from backend.step_function.analysis_aggregator import lambda_handler
     from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
@@ -124,7 +124,7 @@ def test_file_merge(s3_bucket):
             "end_date": end_date,
         },
     ]
-    lambda_handler(event, None)
+    lambda_handler(event, lambda_context)
     csv_body = download_from_s3("analysis.csv", s3_bucket, report_id)
     csv_file = StringIO(csv_body)
 
@@ -146,7 +146,7 @@ def test_file_merge(s3_bucket):
 
 
 @mock_aws
-def test_summary_file(s3_bucket):
+def test_summary_file(s3_bucket, lambda_context):
     """Testing that the summary file is created correctly."""
     from backend.step_function.analysis_aggregator import lambda_handler
     from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
@@ -245,7 +245,7 @@ def test_summary_file(s3_bucket):
             "end_date": end_date,
         },
     ]
-    lambda_handler(event, None)
+    lambda_handler(event, lambda_context)
     report = json.loads(
         download_from_s3("summary.json", bucket_name=s3_bucket, directory=report_id)
     )

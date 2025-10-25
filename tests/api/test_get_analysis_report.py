@@ -29,9 +29,9 @@ def s3_bucket(aws_credentials):
 
 
 @mock_aws
-def test_successful_file_retrieval(s3_bucket):
+def test_successful_file_retrieval(s3_bucket, lambda_context):
     """Test that the Lambda function successfully retrieves a file from S3."""
-    from backend.api.get_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
     from backend.utils.s3_utils import upload_file_to_s3
 
     sample_report_id = "sample.json"
@@ -42,35 +42,46 @@ def test_successful_file_retrieval(s3_bucket):
     upload_file_to_s3(
         json.dumps(sample_content), "analysis.csv", s3_bucket, sample_report_id
     )
-    event = {"queryStringParameters": {"reportID": sample_report_id}}
+    event = {
+        "httpMethod": "GET",
+        "path": "/report",
+        "queryStringParameters": {"reportID": sample_report_id},
+    }
 
-    response = lambda_handler(event, None)
+    response = lambda_handler(event, lambda_context)
     assert response["statusCode"] == 200
     assert json.loads(response["body"])["summary"] == sample_content
 
 
 @mock_aws
-def test_file_not_found(s3_bucket):
+def test_file_not_found(s3_bucket, lambda_context):
     """Test that the Lambda function returns an error when the file is not found."""
-    from backend.api.get_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
 
-    event = {"queryStringParameters": {"reportID": "nonexistent.json"}}
-
-    response = lambda_handler(event, None)
-    assert response["statusCode"] == 404
-    assert json.loads(response["body"]) == {
-        "error": "Analysis does not exists or have been deleted",
-        "status": "Error",
+    event = {
+        "httpMethod": "GET",
+        "path": "/report",
+        "queryStringParameters": {"reportID": "nonexistent.json"},
     }
+
+    response = lambda_handler(event, lambda_context)
+    assert response["statusCode"] == 404
+    response_body = json.loads(response["body"])
+    assert response_body["message"] == "Analysis does not exist or has been deleted"
 
 
 @mock_aws
-def test_missing_filename_parameter(s3_bucket):
+def test_missing_filename_parameter(s3_bucket, lambda_context):
     """Test that the Lambda function returns an error when the filename parameter is missing."""
-    from backend.api.get_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
 
-    event = {"queryStringParameters": {}}
+    event = {
+        "httpMethod": "GET",
+        "path": "/report",
+        "queryStringParameters": {},
+    }
 
-    response = lambda_handler(event, None)
-    assert response["statusCode"] == 400
-    assert json.loads(response["body"]) == {"error": "Report ID parameter is required"}
+    response = lambda_handler(event, lambda_context)
+    assert response["statusCode"] == 404
+    response_body = json.loads(response["body"])
+    assert response_body["message"] == "Report ID parameter is required"

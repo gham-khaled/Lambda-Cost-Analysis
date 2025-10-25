@@ -1,22 +1,23 @@
 """Initialize Lambda cost analysis Step Function."""
 
 import json
-import logging
 import os
 from typing import Any
+
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from backend.utils.s3_utils import upload_file_to_s3
 from backend.utils.sf_utils import upload_divided_params
 
-# Configure logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = Logger()
 
 bucket_name = os.environ["BUCKET_NAME"]
 max_arn_per_invocation = 5
 
 
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+@logger.inject_lambda_context(log_event=True)  # type: ignore[misc]
+def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
     """
     Initialize cost analysis by creating report and dividing Lambda functions.
 
@@ -24,7 +25,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     ----------
     event : dict
         Step Function event with lambda_functions_name, report_id, start_date, end_date
-    context : Any
+    context : LambdaContext
         Lambda context object
 
     Returns
@@ -37,6 +38,12 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     report_id = event["report_id"]
     start_date = event.get("start_date")
     end_date = event.get("end_date")
+
+    logger.info(
+        "Initializing analysis",
+        extra={"report_id": report_id, "num_functions": len(lambda_functions_name)},
+    )
+
     upload_file_to_s3(
         body=json.dumps({"status": "Running"}),
         file_name="summary.json",
@@ -49,15 +56,12 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         bucket_name=bucket_name,
         directory_name="SF_PARAMS/SF_PARAMS",
     )
+
+    logger.info("Analysis initialized", extra={"num_batches": len(sf_parameters)})
+
     return {
         "lambda_functions_name": sf_parameters,
         "start_date": start_date,
         "end_date": end_date,
         "report_id": report_id,
     }
-
-
-if __name__ == "__main__":
-    test = '{"allDurationInSeconds":101.689,"avgProvisionedMemoryMB":122.0703,"MemoryCost":0.000202,"InvocationCost":0.0000088,"totalCost":0.0002108,"avgCostPerInvocation":0.000004792,"avgMaxMemoryUsedMB":80.1086,"avgOverProvisionedMB":41.9617,"optimalTotalCost":0.0002119,"potentialSavings":0.0,"avgDurationPerInvocation":2.3111,"status":"Completed"}'
-
-    logger.info(json.dumps(json.loads(test), indent=4))

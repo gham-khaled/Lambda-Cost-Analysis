@@ -101,9 +101,9 @@ def lambda_functions(aws_credentials):
 
 
 @mock_aws
-def test_successful_list_all_function(lambda_functions):
+def test_successful_list_all_function(lambda_functions, lambda_context):
     """Test that the Lambda function successfully retrieves all functions."""
-    from backend.api.list_lambda_functions import lambda_handler
+    from backend.api.app import lambda_handler
 
     parameters = {
         "selectedRuntime": [
@@ -130,7 +130,13 @@ def test_successful_list_all_function(lambda_functions):
         "selectedArchitecture": ["x86_64", "arm64"],
     }
 
-    response = lambda_handler({"queryStringParameters": parameters}, None)
+    event = {
+        "httpMethod": "GET",
+        "path": "/lambda-functions",
+        "queryStringParameters": parameters,
+    }
+
+    response = lambda_handler(event, lambda_context)
     response_functions = json.loads(response["body"])
 
     assert response["statusCode"] == 200
@@ -172,7 +178,7 @@ def test_successful_list_all_function(lambda_functions):
 @mock_aws
 def test_runtime_filter(lambda_functions):
     """Test that the Lambda function successfully filters by runtime."""
-    from backend.api.list_lambda_functions import lambda_handler
+    from backend.api.app import lambda_handler
 
     parameters = {
         "selectedRuntime": [

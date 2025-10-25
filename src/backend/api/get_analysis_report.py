@@ -1,51 +1,34 @@
 """API endpoint to retrieve analysis report by ID."""
 
 import json
-import logging
 import os
 from io import StringIO
 from typing import Any
 
 import boto3
 import pandas as pd
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from botocore.exceptions import ClientError
 
-from backend.api.cors_decorator import cors_header
+from backend.api.app import app
 from backend.utils.s3_utils import download_from_s3
 
-# Configure logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = Logger()
 
 s3_client = boto3.client("s3")
 
 bucket_name = os.environ["BUCKET_NAME"]
 
 
-@cors_header
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Retrieve analysis report by report ID.
-
-    Parameters
-    ----------
-    event : dict
-        Lambda event with reportID query parameter
-    context : Any
-        Lambda context
-
-    Returns
-    -------
-    dict
-        API Gateway response with analysis data and download URL
-    """
-    report_id = event.get("queryStringParameters", {}).get("reportID")
+@app.get("/report")  # type: ignore[misc]
+def get_report() -> dict[str, Any]:
+    """Retrieve analysis report by report ID."""
+    query_params = app.current_event.query_string_parameters or {}
+    report_id = query_params.get("reportID")
 
     if not report_id:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Report ID parameter is required"}),
-        }
+        raise NotFoundError("Report ID parameter is required")
 
     try:
         # Fetch the S3 object
@@ -53,11 +36,14 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             file_name="summary.json", bucket_name=bucket_name, directory=report_id
         )
         summary: dict[str, Any] = json.loads(summary_str)
+
+        logger.info(
+            "Retrieved analysis report",
+            extra={"report_id": report_id, "status": summary.get("status")},
+        )
+
         if summary["status"] in ["Running", "Error"]:
-            return {
-                "statusCode": 200,
-                "body": json.dumps({"summary": summary}),
-            }
+            return {"summary": summary}
         else:
             analysis = download_from_s3(
                 file_name="analysis.csv", bucket_name=bucket_name, directory=report_id
@@ -70,35 +56,18 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             )
             df = pd.read_csv(StringIO(analysis), sep=",", index_col=0)
             return {
-                "statusCode": 200,
-                "body": json.dumps(
-                    {
-                        "analysis": json.loads(df.to_json(orient="records")),
-                        "summary": summary,
-                        "url": download_url,
-                    }
-                ),
+                "analysis": json.loads(df.to_json(orient="records")),
+                "summary": summary,
+                "url": download_url,
             }
     except ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchKey":
-            return {
-                "statusCode": 404,
-                "body": json.dumps(
-                    {
-                        "error": "Analysis does not exists or have been deleted",
-                        "status": "Error",
-                    }
-                ),
-            }
+            raise NotFoundError("Analysis does not exist or has been deleted")
         else:
-            return {
-                "statusCode": 500,
-                "body": json.dumps({"error": str(e), "status": "Error"}),
-            }
+            logger.exception(
+                "Error retrieving analysis report", extra={"report_id": report_id}
+            )
+            raise
 
 
-if __name__ == "__main__":
-    event = {"queryStringParameters": {"reportID": "running"}}
-    result = lambda_handler(event, None)
-    logger.info(result)
-    logger.info(json.loads(result["body"]))
+# Lambda handler is in app.py - this module just registers routes

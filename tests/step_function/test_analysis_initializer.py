@@ -29,7 +29,7 @@ def s3_bucket(aws_credentials):
 
 
 @mock_aws
-def test_report_json_created(s3_bucket):
+def test_report_json_created(s3_bucket, lambda_context):
     """Testing that the report json has been created with the Running Status."""
     from backend.step_function.analysis_initializer import lambda_handler
     from backend.utils.s3_utils import download_from_s3
@@ -37,7 +37,7 @@ def test_report_json_created(s3_bucket):
     report_id = "test_report"
     event = {"lambda_functions_name": [{}], "report_id": report_id}
 
-    lambda_handler(event, None)
+    lambda_handler(event, lambda_context)
     report = json.loads(
         download_from_s3("summary.json", bucket_name=s3_bucket, directory=report_id)
     )

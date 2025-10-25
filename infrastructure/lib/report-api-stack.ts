@@ -7,6 +7,7 @@ import {StateMachine} from "aws-cdk-lib/aws-stepfunctions";
 import * as iam from 'aws-cdk-lib/aws-iam';
 import {Bucket} from "aws-cdk-lib/aws-s3";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import {DockerLambdaFunction} from "./constructs/docker-lambda-function";
 
 export interface ReportApiStackProps extends cdk.StackProps {
     readonly analysisStepFunction: StateMachine
@@ -19,56 +20,38 @@ export class ReportApiStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: ReportApiStackProps) {
         super(scope, id, props);
 
-        const list_lambda_functions = new lambda.Function(this, 'list_lambda_functions', {
-            runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'backend.api.list_lambda_functions.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
-            timeout: Duration.seconds(29)
+        // Single Lambda function for all API routes
+        const apiFunction = new DockerLambdaFunction(this, 'api_function', {
+            handler: 'backend.api.app.lambda_handler',
+            serviceName: 'lambda-cost-analysis-api',
+            timeout: Duration.seconds(29),
+            memorySize: 512,
+            environment: {
+                BUCKET_NAME: props.analysisBucket.bucketName
+            }
         });
+
+        // Grant permissions
         const listFunctionsPolicy = new iam.PolicyStatement({
             actions: ['lambda:ListFunctions'],
             resources: ['*'],
         });
-        list_lambda_functions.addToRolePolicy(listFunctionsPolicy)
-        const get_analysis_report = new lambda.Function(this, 'get_analysis_report', {
-            runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'backend.api.get_analysis_report.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
-            timeout: Duration.seconds(29),
-            layers: [lambda.LayerVersion.fromLayerVersionArn(this, 'pandasLayer', `arn:aws:lambda:${Aws.REGION}:336392948345:layer:AWSSDKPandas-Python310:15`)],
-            environment: {
-                BUCKET_NAME: props.analysisBucket.bucketName
-            }
-
-        });
-        const historical_analysis_report = new lambda.Function(this, 'historical_analysis_report', {
-            runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'backend.api.historical_analysis_report.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
-            timeout: Duration.seconds(29),
-            environment: {
-                BUCKET_NAME: props.analysisBucket.bucketName
-            }
-        });
+        apiFunction.addToRolePolicy(listFunctionsPolicy);
+        props.analysisBucket.grantRead(apiFunction);
 
 
         this.api = new apigateway.RestApi(this, 'analysisAPI', {
             defaultCorsPreflightOptions: {
                 allowOrigins: apigateway.Cors.ALL_ORIGINS,
-                allowMethods: apigateway.Cors.ALL_METHODS, // Allow all methods (GET, POST, etc.)
+                allowMethods: apigateway.Cors.ALL_METHODS,
                 allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent'],
             }
         });
-        const api_resource_prefix = this.api.root.addResource('api')
 
-        api_resource_prefix.addResource('reportSummaries').addMethod('GET', new apigateway.LambdaIntegration(historical_analysis_report))
-
-        api_resource_prefix.addResource('lambdaFunctions').addMethod('GET', new apigateway.LambdaIntegration(list_lambda_functions))
-        api_resource_prefix.addResource('report').addMethod('GET', new apigateway.LambdaIntegration(get_analysis_report), {
-            requestParameters: {
-                'method.request.querystring.reportID': true,
-            }
-        })
+        // Use proxy integration to route all /api/* requests to the single Lambda
+        const api_resource_prefix = this.api.root.addResource('api');
+        const proxyResource = api_resource_prefix.addResource('{proxy+}');
+        proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(apiFunction));
         const apiGatewayRole = new iam.Role(this, 'ApiGatewayStepFunctionsRole', {
             assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
             managedPolicies: [
@@ -116,8 +99,6 @@ export class ReportApiStack extends cdk.Stack {
             ]
         });
 
-        props.analysisBucket.grantRead(historical_analysis_report)
-        props.analysisBucket.grantRead(get_analysis_report)
         // TODO: Add request validation when integrating SF (Example: Lambda ARNs must be a non empty list)
     }
 }

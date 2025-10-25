@@ -9,6 +9,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import {Aws, Duration} from "aws-cdk-lib";
 import {StateMachine} from "aws-cdk-lib/aws-stepfunctions";
 import {Bucket} from "aws-cdk-lib/aws-s3";
+import {DockerLambdaFunction} from "./constructs/docker-lambda-function";
 
 export class StepFunctionAnalysisStack extends cdk.Stack {
     public analysisStepFunction: StateMachine;
@@ -34,34 +35,33 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
         }));
 
         this.analysisBucket = new s3.Bucket(this, 'AnalysisBucket');
-        const pandasLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'pandasLayer', `arn:aws:lambda:${Aws.REGION}:336392948345:layer:AWSSDKPandas-Python310:15`);
 
-        const analysisAggregator = new lambda.Function(this, 'analysis_aggregator', {
-            runtime: lambda.Runtime.PYTHON_3_10,
+        const analysisAggregator = new DockerLambdaFunction(this, 'analysis_aggregator', {
             handler: 'backend.step_function.analysis_aggregator.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
+            serviceName: 'analysis-aggregator',
             timeout: Duration.seconds(900),
-            layers: [pandasLayer],
+            memorySize: 512,
             environment: {
                 BUCKET_NAME: this.analysisBucket.bucketName
             }
         });
-        const analysisGenerator = new lambda.Function(this, 'analysis_generator', {
-            runtime: lambda.Runtime.PYTHON_3_10,
+
+        const analysisGenerator = new DockerLambdaFunction(this, 'analysis_generator', {
             handler: 'backend.step_function.analysis_generator.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
+            serviceName: 'analysis-generator',
             timeout: Duration.seconds(900),
+            memorySize: 512,
             role: describeLogGroupsRole,
             environment: {
                 BUCKET_NAME: this.analysisBucket.bucketName
             }
         });
-        const analysisInitializer = new lambda.Function(this, 'analysis_initializer', {
-            runtime: lambda.Runtime.PYTHON_3_10,
-            handler: 'backend.step_function.analysis_initializer.lambda_handler',
-            code: lambda.Code.fromAsset('../src/'),
-            timeout: Duration.seconds(900),
 
+        const analysisInitializer = new DockerLambdaFunction(this, 'analysis_initializer', {
+            handler: 'backend.step_function.analysis_initializer.lambda_handler',
+            serviceName: 'analysis-initializer',
+            timeout: Duration.seconds(900),
+            memorySize: 256,
             environment: {
                 BUCKET_NAME: this.analysisBucket.bucketName
             }

@@ -2,7 +2,6 @@
 
 import concurrent.futures
 import csv
-import logging
 import os
 import time
 import uuid
@@ -11,20 +10,21 @@ from io import StringIO
 from typing import Any
 
 import boto3
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from backend.utils.s3_utils import upload_file_to_s3
 from backend.utils.sf_utils import download_parameters_from_s3
 
-# Configure logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = Logger()
 
 cloudwatch_client = boto3.client("logs")
 lambda_client = boto3.client("lambda")
 bucket_name = os.environ["BUCKET_NAME"]
 
 
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+@logger.inject_lambda_context(log_event=True)  # type: ignore[misc]
+def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
     """
     Generate cost analysis for a batch of Lambda functions.
 
@@ -32,7 +32,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     ----------
     event : dict
         Event with lambda_functions_name S3 location, report_id, start_date, end_date
-    context : Any
+    context : LambdaContext
         Lambda context object
 
     Returns
@@ -44,7 +44,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     report_id = event.get("report_id", "")
     start_date = event.get("start_date", "")
     end_date = event.get("end_date", "")
-    logger.info(f"Processing lambda functions: {lambda_functions_name}, event: {event}")
+    logger.info(
+        "Processing lambda functions",
+        extra={"num_functions": len(lambda_functions_name), "report_id": report_id},
+    )
     return generate_cost_report(lambda_functions_name, report_id, start_date, end_date)
 
 

@@ -1,16 +1,13 @@
 """API endpoint to list Lambda functions in AWS account."""
 
-import json
-import logging
 from typing import Any
 
 import boto3
+from aws_lambda_powertools import Logger
 
-from backend.api.cors_decorator import cors_header
+from backend.api.app import app
 
-# Configure logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = Logger()
 
 client = boto3.client("lambda")
 
@@ -51,37 +48,18 @@ def fetch_lambda_function(marker: str | None = None) -> list[dict[str, Any]]:
     return functions
 
 
-lambda_functions = fetch_lambda_function()
+@app.get("/lambda-functions")  # type: ignore[misc]
+def list_functions() -> list[dict[str, Any]]:
+    """List all Lambda functions in the AWS account."""
+    # TODO: Add filtering support
+    # query_params = app.current_event.query_string_parameters or {}
+    # selected_runtimes = query_params.get('selectedRuntime', [])
+    # selected_package_type = query_params.get('selectedPackageType', [])
+    # selected_architecture = query_params.get('selectedArchitecture', [])
+
+    lambda_functions = fetch_lambda_function()
+    logger.info("Listing Lambda functions", extra={"count": len(lambda_functions)})
+    return lambda_functions
 
 
-# TODO: Add more information in the response body
-@cors_header
-def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
-    """
-    List all Lambda functions in the AWS account.
-
-    Parameters
-    ----------
-    event : Any
-        Lambda event
-    context : Any
-        Lambda context
-
-    Returns
-    -------
-    dict
-        API Gateway response with Lambda functions list
-    """
-    #     parameters = event['queryStringParameters']
-    #     selected_runtimes = parameters['selectedRuntime']
-    #     selected_package_type = parameters['selectedPackageType']
-    #     selected_architecture = parameters['selectedArchitecture']
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps(lambda_functions),
-    }
-
-
-if __name__ == "__main__":
-    logger.info(lambda_handler(None, None))
+# Lambda handler is in app.py - this module just registers routes

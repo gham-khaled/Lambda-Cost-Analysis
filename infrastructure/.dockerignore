@@ -1,0 +1,38 @@
+# Python
+*.pyc
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Tests
+tests/
+*.test.ts
+*.test.js
+
+# CDK
+cdk.out/
+node_modules/
+*.js
+*.d.ts
+!jest.config.js
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Documentation
+*.md
+README*
+
+# Other
+.DS_Store
+.pre-commit-config.yaml

@@ -9,7 +9,8 @@
       "Read(//Users/khaledghamgui/Desktop/Projects/**)",
       "Bash(PYTHONPATH=backend uv run pytest:*)",
       "Bash(tree:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(PYTHONPATH=src uv run pytest:*)"
     ],
     "deny": [],
     "ask": []

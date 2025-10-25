@@ -29,19 +29,25 @@ def s3_bucket(aws_credentials):
 
 
 @mock_aws
-def test_no_file_found(s3_bucket):
+def test_no_file_found(s3_bucket, lambda_context):
     """Testing the right response when no file is found."""
-    from backend.api.historical_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
 
-    response = lambda_handler({}, None)
+    event = {
+        "httpMethod": "GET",
+        "path": "/reportSummaries",
+        "queryStringParameters": None,
+    }
+
+    response = lambda_handler(event, lambda_context)
     response_body = json.loads(response["body"])
     assert response_body == {"message": "No files found."}
 
 
 @mock_aws
-def test_function_succeeding(s3_bucket):
+def test_function_succeeding(s3_bucket, lambda_context):
     """Testing that the S3 object summaries will be returned correctly if found."""
-    from backend.api.historical_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
     from backend.utils.s3_utils import upload_file_to_s3
 
     prefix_name = "summaries"
@@ -80,7 +86,13 @@ def test_function_succeeding(s3_bucket):
         json.dumps(json_load_2), "json_load_2.json", s3_bucket, prefix_name
     )
 
-    response = lambda_handler({}, None)
+    event = {
+        "httpMethod": "GET",
+        "path": "/reportSummaries",
+        "queryStringParameters": None,
+    }
+
+    response = lambda_handler(event, lambda_context)
     response_body = json.loads(response["body"])
     file_content = response_body["jsonContents"]
 
@@ -89,9 +101,9 @@ def test_function_succeeding(s3_bucket):
 
 
 @mock_aws
-def test_function_pagination(s3_bucket):
+def test_function_pagination(s3_bucket, lambda_context):
     """Testing that the pagination is working correctly."""
-    from backend.api.historical_analysis_report import lambda_handler
+    from backend.api.app import lambda_handler
     from backend.utils.s3_utils import upload_file_to_s3
 
     prefix_name = "summaries"
@@ -114,17 +126,27 @@ def test_function_pagination(s3_bucket):
             json.dumps(json_load_1), f"json_load_{i}.json", s3_bucket, prefix_name
         )
 
-    response = lambda_handler({"queryStringParameters": {"rowsPerPage": "10"}}, None)
+    event = {
+        "httpMethod": "GET",
+        "path": "/reportSummaries",
+        "queryStringParameters": {"rowsPerPage": "10"},
+    }
+
+    response = lambda_handler(event, lambda_context)
     response_body = json.loads(response["body"])
     file_content = response_body["jsonContents"]
     assert len(file_content) == 10
     assert "continuationToken" in response_body
 
-    parameters = {
-        "continuationToken": response_body["continuationToken"],
-        "rowsPerPage": "10",
+    event = {
+        "httpMethod": "GET",
+        "path": "/reportSummaries",
+        "queryStringParameters": {
+            "continuationToken": response_body["continuationToken"],
+            "rowsPerPage": "10",
+        },
     }
-    response = lambda_handler({"queryStringParameters": parameters}, None)
+    response = lambda_handler(event, lambda_context)
     response_body = json.loads(response["body"])
     file_content = response_body["jsonContents"]
     assert len(file_content) == 2

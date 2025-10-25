@@ -1,19 +1,18 @@
 """Aggregate Lambda cost analysis results from multiple CSV files."""
 
-import logging
 import os
 from datetime import datetime
 from io import StringIO
 from typing import Any
 
 import pandas as pd
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from backend.utils.multithread_utils import multi_thread
 from backend.utils.s3_utils import download_from_s3, upload_file_to_s3
 
-# Configure logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = Logger()
 
 bucket_name = os.environ["BUCKET_NAME"]
 
@@ -40,7 +39,8 @@ def download_csv_file_wrapper(s3_info: dict[str, str]) -> pd.DataFrame:
     return pd.read_csv(StringIO(csv_file_content), sep=",")
 
 
-def lambda_handler(event: list[dict[str, Any]], context: Any) -> None:
+@logger.inject_lambda_context(log_event=True)  # type: ignore[misc]
+def lambda_handler(event: list[dict[str, Any]], context: LambdaContext) -> None:
     """
     Aggregate cost analysis results and generate summary.
 
@@ -48,13 +48,16 @@ def lambda_handler(event: list[dict[str, Any]], context: Any) -> None:
     ----------
     event : list of dict
         List of S3 file locations with analysis results
-    context : Any
+    context : LambdaContext
         Lambda context object
     """
     report_id = event[0]["report_id"]
     start_date = event[0]["start_date"]
     end_date = event[0]["end_date"]
-    logger.info(f"Aggregating data for report {report_id}: {event}")
+    logger.info(
+        "Aggregating data for report",
+        extra={"report_id": report_id, "num_files": len(event)},
+    )
     aggregated_data = pd.DataFrame()
     files_content = multi_thread(download_csv_file_wrapper, event, max_workers=10)
     for content in files_content:
