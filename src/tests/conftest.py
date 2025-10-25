@@ -1,7 +1,6 @@
 """Shared pytest fixtures for all tests."""
 
 from dataclasses import dataclass
-from typing import Any
 
 import pytest
 

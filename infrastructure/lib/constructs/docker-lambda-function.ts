@@ -49,7 +49,7 @@ export interface DockerLambdaFunctionProps {
  */
 export class DockerLambdaFunction extends lambda.DockerImageFunction {
     constructor(scope: Construct, id: string, props: DockerLambdaFunctionProps) {
-        const dockerfilePath = path.join(__dirname, '..', '..');
+        const dockerfilePath = path.join(__dirname, '..', '..', '..');
 
         super(scope, id, {
             code: lambda.DockerImageCode.fromImageAsset(dockerfilePath, {

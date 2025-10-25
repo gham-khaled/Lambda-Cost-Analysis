@@ -1,5 +1,5 @@
 # Multi-stage build for AWS Lambda Python functions
-FROM public.ecr.aws/lambda/python:3.10 AS builder
+FROM public.ecr.aws/lambda/python:3.13 AS builder
 
 # Install uv for fast dependency management
 RUN pip install --no-cache-dir uv
@@ -10,10 +10,10 @@ COPY src/ /build/src/
 
 # Install dependencies to /build/deps
 WORKDIR /build
-RUN uv pip install --python 3.10 --no-cache --target /build/deps .
+RUN uv pip install --python 3.13 --no-cache --target /build/deps .
 
 # Final stage
-FROM public.ecr.aws/lambda/python:3.10
+FROM public.ecr.aws/lambda/python:3.13
 
 # Copy installed dependencies
 COPY --from=builder /build/deps/ ${LAMBDA_TASK_ROOT}/

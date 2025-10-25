@@ -18,6 +18,8 @@ node_modules/
 *.js
 *.d.ts
 !jest.config.js
+infrastructure/**
+frontend/**
 
 # Git
 .git/
