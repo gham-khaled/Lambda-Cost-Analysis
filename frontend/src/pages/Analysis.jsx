@@ -62,6 +62,8 @@ const Analysis = () => {
 	const [lambdaFunctions, setLambdaFunctions] = useState([])
 
 	const [isFiltered, setIsFiltered] = useState(false)
+	const [showConfirmation, setShowConfirmation] = useState(false)
+	const [confirmationData, setConfirmationData] = useState(null)
 
 	const navigate = useNavigate()
 
@@ -137,15 +139,53 @@ const Analysis = () => {
 		handleFetchFunctions()
 	}, [])
 
-	const handleLaunchAnalysis = async () => {
-		customToast('Analysis launched successfully', '✅', successMsgStyle)
+	const errorMsgStyle = {
+		fontSize: '12px',
+		border: '0.4px solid #787474',
+		borderRadius: '5px',
+		background: '#253645',
+		color: '#fff',
+	}
+
+	const handleShowConfirmation = () => {
+		// Validation
+		if (!startDate || !endDate) {
+			customToast(
+				'Please select both start and end dates',
+				'❌',
+				errorMsgStyle
+			)
+			return
+		}
+
+		if (selectedFunctions.length === 0) {
+			customToast(
+				'Please select at least one Lambda function',
+				'❌',
+				errorMsgStyle
+			)
+			return
+		}
 
 		const unixStartDate = new Date(startDate.setHours(0, 0, 0, 0)).toISOString()
 		const unixEndDate = new Date(endDate.setHours(23, 59, 59, 999)).toISOString()
+		const reportID = analysisID || Math.floor(Date.now() / 1000)
 
-		const reportID = analysisID || Math.floor(Date.now() / 1000) // Use analysisID if provided, otherwise use timestamp
+		setConfirmationData({
+			reportID,
+			startDate: unixStartDate,
+			endDate: unixEndDate,
+			selectedFunctionsCount: selectedFunctions.length,
+		})
+		setShowConfirmation(true)
+	}
+
+	const handleLaunchAnalysis = async () => {
+		setShowConfirmation(false)
+
+		const { reportID, startDate: unixStartDate, endDate: unixEndDate } = confirmationData
+
 		localStorage.setItem('reportID', reportID.toString())
-
 		setMaxAttemptsReached(false)
 		setCurrentReportID(reportID)
 
@@ -158,24 +198,21 @@ const Analysis = () => {
 			end_date: unixEndDate,
 		}
 		setIsFetching(true)
+
 		try {
 			const response = await axios.post(`${PROD_API_URL}/startExecution`, payload)
-			// console.log(`Start Execution Response: ${response}`)
-			// console.log(response)
+			customToast('Analysis launched successfully', '✅', successMsgStyle)
 
-			await getAnalysisDetail(reportID)
+			// Wait for a few seconds with spinner before redirecting
+			await delay(3000)
+
+			// Navigate immediately to the report details page
+			navigate(`/report/reportID=${reportID}`)
 		} catch (error) {
-			console.error('Error fetching lambda functions: ', error)
-			setLoading(false)
+			console.error('Error launching analysis: ', error)
+			customToast('Failed to launch analysis', '❌', errorMsgStyle)
+			setIsFetching(false)
 		}
-	}
-
-	const errorMsgStyle = {
-		fontSize: '12px',
-		border: '0.4px solid #787474',
-		borderRadius: '5px',
-		background: '#253645',
-		color: '#fff',
 	}
 
 	const getAnalysisDetail = async (reportID) => {
@@ -320,26 +357,34 @@ const Analysis = () => {
 									</FloatLabel>
 
 									<button
-										className={`${!isFetching ? 'bg-lambdaPrimary' : 'bg-gray-500'} text-white text-xs py-1 rounded-md  `}
-										onClick={() => {
-											if (selectedFunctions.length === 0) {
-												customToast(
-													'Please Fetch lambda fns and select at least one  before launching the analysis.',
-													'❌',
-													errorMsgStyle
-												)
-											} else {
-												handleLaunchAnalysis()
-											}
-										}}
-										disabled={isFetching}
+										className={`${!isFetching && startDate && endDate && selectedFunctions.length > 0 ? 'bg-lambdaPrimary hover:bg-green-600' : 'bg-gray-500 cursor-not-allowed'} text-white text-xs py-1 rounded-md transition-colors`}
+										onClick={handleShowConfirmation}
+										disabled={isFetching || !startDate || !endDate || selectedFunctions.length === 0}
 									>
-										{isFetching ? 'Fetching...' : 'New Analysis'}
+										{isFetching ? 'Launching Analysis...' : 'New Analysis'}
 									</button>
 								</div>
+								{!startDate || !endDate ? (
+									<div className='text-xs text-red-400 pt-4'>
+										⚠️ Please select both start and end dates to launch the analysis
+									</div>
+								) : selectedFunctions.length === 0 ? (
+									<div className='text-xs text-red-400 pt-4'>
+										⚠️ Please select at least one Lambda function
+									</div>
+								) : null}
 								{isFetching && (
-									<div className='text-xs text-yellow-600 pt-4'>
-										Please wait while we fetch the analysis details...
+									<div className='flex items-center gap-3 text-sm text-yellow-500 pt-4'>
+										<RotatingLines
+											visible={true}
+											height='20'
+											width='20'
+											color='#eab308'
+											strokeWidth='5'
+											animationDuration='0.75'
+											ariaLabel='rotating-lines-loading'
+										/>
+										<span>Launching analysis... You will be redirected shortly.</span>
 									</div>
 								)}
 								{maxAttemptsReached && (
@@ -358,6 +403,55 @@ const Analysis = () => {
 						/>
 					</div>
 				</div>
+
+				{/* Confirmation Modal */}
+				{showConfirmation && confirmationData && (
+					<div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+						<div className='bg-darkblueMedium border border-darkblueLight rounded-lg p-8 max-w-md w-full mx-4'>
+							<h2 className='text-xl font-semibold text-lambdaPrimary mb-4'>
+								Confirm Analysis Launch
+							</h2>
+							<div className='space-y-3 text-sm text-white/80'>
+								<div className='flex justify-between'>
+									<span className='text-gray-400'>Analysis ID:</span>
+									<span className='font-medium text-white'>{confirmationData.reportID}</span>
+								</div>
+								<div className='flex justify-between'>
+									<span className='text-gray-400'>Start Date:</span>
+									<span className='font-medium text-white'>
+										{new Date(confirmationData.startDate).toLocaleDateString()}
+									</span>
+								</div>
+								<div className='flex justify-between'>
+									<span className='text-gray-400'>End Date:</span>
+									<span className='font-medium text-white'>
+										{new Date(confirmationData.endDate).toLocaleDateString()}
+									</span>
+								</div>
+								<div className='flex justify-between'>
+									<span className='text-gray-400'>Lambda Functions:</span>
+									<span className='font-medium text-white'>
+										{confirmationData.selectedFunctionsCount} selected
+									</span>
+								</div>
+							</div>
+							<div className='flex gap-4 mt-6'>
+								<button
+									onClick={() => setShowConfirmation(false)}
+									className='flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md text-sm transition-colors'
+								>
+									Cancel
+								</button>
+								<button
+									onClick={handleLaunchAnalysis}
+									className='flex-1 bg-lambdaPrimary hover:bg-green-600 text-white py-2 px-4 rounded-md text-sm transition-colors'
+								>
+									Launch Analysis
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	)
@@ -372,24 +466,34 @@ const DynamicTable = ({ columns, data, loading = false }) => {
 	} = useContext(AnalysisContext)
 	const [checkedItems, setCheckedItems] = useState({})
 
+	// Apply filters to get the filtered data
+	const filteredData = data.filter(
+		(row) =>
+			selectedRuntime.includes(row.Runtime) &&
+			selectedPackageOptions.includes(row.PackageType) &&
+			selectedArchitectureOptions.some(
+				(architecture) => row.Architectures.includes(architecture)
+			)
+	)
+
 	useEffect(() => {
-		// Initialize or reset checkedItems state when data changes
+		// Initialize or reset checkedItems state when filtered data changes
 		const newCheckedItems = {}
-		data.forEach((item, index) => {
+		filteredData.forEach((item, index) => {
 			newCheckedItems[index] = true // Initially, all items are checked
 		})
 		setCheckedItems(newCheckedItems)
-	}, [data])
+		// Update selected functions with filtered data
+		setSelectedFunctions(filteredData)
+	}, [data, selectedRuntime, selectedPackageOptions, selectedArchitectureOptions])
 
 	const handleSelectAll = (e) => {
-		const newCheckedItems = { ...checkedItems }
-		Object.keys(newCheckedItems).forEach((key) => {
-			newCheckedItems[key] = e.target.checked
+		const newCheckedItems = {}
+		filteredData.forEach((item, index) => {
+			newCheckedItems[index] = e.target.checked
 		})
 		setCheckedItems(newCheckedItems)
-		const selected = Object.keys(newCheckedItems)
-			.filter((key) => newCheckedItems[key])
-			.map((key) => data[key])
+		const selected = e.target.checked ? filteredData : []
 		setSelectedFunctions(selected)
 	}
 
@@ -398,11 +502,12 @@ const DynamicTable = ({ columns, data, loading = false }) => {
 		setCheckedItems(newCheckedItems)
 		const selected = Object.keys(newCheckedItems)
 			.filter((key) => newCheckedItems[key])
-			.map((key) => data[key])
+			.map((key) => filteredData[key])
+			.filter(Boolean)
 		setSelectedFunctions(selected)
 	}
 
-	const allChecked = Object.values(checkedItems).every(Boolean)
+	const allChecked = filteredData.length > 0 && Object.values(checkedItems).every(Boolean)
 
 	return (
 		<>
@@ -426,43 +531,29 @@ const DynamicTable = ({ columns, data, loading = false }) => {
 							</tr>
 						</thead>
 						<tbody>
-							{data
-								.filter(
-									(row) =>
-										selectedRuntime.includes(row.Runtime) &&
-										selectedPackageOptions.includes(row.PackageType) &&
-										selectedArchitectureOptions.some(
-											(architecture) => row.Architectures.includes(architecture)
-											// .some method returns true if at least one element in the array satisfies the condition where Architectures is an array of strings
-										)
-								)
-
-								.map((row, index) => {
-									// Log the current row to the console
-									// console.log(row.row)
-
-									return (
-										<tr
-											key={index}
-											className={`${index % 2 === 0 ? 'bg-darkblueMedium' : 'bg-transparent'} cursor-pointer text-xs hover:bg-green-900/40`}
-										>
-											<td className='px-6 py-3'>
-												<input
-													type='checkbox'
-													checked={checkedItems[index] || false}
-													onChange={(e) => handleSelectItem(index, e.target.checked)}
-												/>
+							{filteredData.map((row, index) => {
+								return (
+									<tr
+										key={index}
+										className={`${index % 2 === 0 ? 'bg-darkblueMedium' : 'bg-transparent'} cursor-pointer text-xs hover:bg-green-900/40`}
+									>
+										<td className='px-6 py-3'>
+											<input
+												type='checkbox'
+												checked={checkedItems[index] || false}
+												onChange={(e) => handleSelectItem(index, e.target.checked)}
+											/>
+										</td>
+										{columns.map((column) => (
+											<td key={column.accessor} className='px-6 py-3'>
+												{column.Cell
+													? column.Cell(row[column.accessor])
+													: row[column.accessor]}
 											</td>
-											{columns.map((column) => (
-												<td key={column.accessor} className='px-6 py-3'>
-													{column.Cell
-														? column.Cell(row[column.accessor])
-														: row[column.accessor]}
-												</td>
-											))}
-										</tr>
-									)
-								})}
+										))}
+									</tr>
+								)
+							})}
 						</tbody>
 					</table>
 				</div>

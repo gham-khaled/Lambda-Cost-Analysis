@@ -14,6 +14,7 @@ const MultiSelect = ({
 	// optionLabel = 'name',
 	placeholder = 'Select...',
 	className = 'bg-darkblueLight text-white text-xs m-0 w-full rounded-md',
+	panelStyle = { maxHeight: '400px', fontSize: '14px' },
 }) => {
 	return (
 		<div>
@@ -28,6 +29,7 @@ const MultiSelect = ({
 				// optionLabel={optionLabel}
 				placeholder={placeholder}
 				className={className}
+				panelStyle={panelStyle}
 			/>
 			<label htmlFor={label}>{label}</label>
 		</div>

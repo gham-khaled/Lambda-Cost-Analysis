@@ -127,12 +127,32 @@ const ReportDetails = () => {
                         <StatisticsList summary={summary}/>
                     </div>
                 ) : status === 'Running' ? (
-                    <div className='text-xs text-yellow-600'>
-                        Report is still processing
+                    <div className='flex flex-col justify-center items-center h-64 gap-4'>
+                        <ThreeDots
+                            visible={true}
+                            height='60'
+                            width='60'
+                            color='#eab308'
+                            radius='9'
+                            ariaLabel='three-dots-loading'
+                            wrapperStyle={{}}
+                            wrapperClass=''
+                        />
+                        <p className='text-base text-yellow-500 font-medium'>
+                            Report is still processing...
+                        </p>
+                        <p className='text-sm text-gray-400'>
+                            This page will automatically update when complete
+                        </p>
                     </div>
                 ) : (
                     status === 'Error' && (
-                        <div className='text-xs text-red-600'> Report generation failed</div>
+                        <div className='flex justify-center items-center h-64'>
+                            <div className='text-center'>
+                                <p className='text-base text-red-500 font-medium'>Report generation failed</p>
+                                <p className='text-sm text-gray-400 mt-2'>Please try running the analysis again</p>
+                            </div>
+                        </div>
                     )
                 )}
                 {loading && (

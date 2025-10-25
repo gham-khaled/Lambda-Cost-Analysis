@@ -11,7 +11,9 @@
       "Bash(tree:*)",
       "Bash(find:*)",
       "Bash(PYTHONPATH=src uv run pytest:*)",
-      "Bash(npx cdk deploy:*)"
+      "Bash(npx cdk deploy:*)",
+      "Bash(npm run dev)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []
