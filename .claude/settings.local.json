@@ -10,7 +10,8 @@
       "Bash(PYTHONPATH=backend uv run pytest:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(PYTHONPATH=src uv run pytest:*)"
+      "Bash(PYTHONPATH=src uv run pytest:*)",
+      "Bash(npx cdk deploy:*)"
     ],
     "deny": [],
     "ask": []

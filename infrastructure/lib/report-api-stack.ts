@@ -40,17 +40,19 @@ export class ReportApiStack extends cdk.Stack {
         props.analysisBucket.grantRead(apiFunction);
 
 
-        this.api = new apigateway.RestApi(this, 'analysisAPI', {
-            defaultCorsPreflightOptions: {
-                allowOrigins: apigateway.Cors.ALL_ORIGINS,
-                allowMethods: apigateway.Cors.ALL_METHODS,
-                allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent'],
-            }
-        });
+        this.api = new apigateway.RestApi(this, 'analysisAPI', );
 
         // Use proxy integration to route all /api/* requests to the single Lambda
         const api_resource_prefix = this.api.root.addResource('api');
         const proxyResource = api_resource_prefix.addResource('{proxy+}');
+
+        // Add CORS preflight to proxy resource
+        proxyResource.addCorsPreflight({
+            allowOrigins: apigateway.Cors.ALL_ORIGINS,
+            allowMethods: apigateway.Cors.ALL_METHODS,
+            allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent'],
+        });
+
         proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(apiFunction));
         const apiGatewayRole = new iam.Role(this, 'ApiGatewayStepFunctionsRole', {
             assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),

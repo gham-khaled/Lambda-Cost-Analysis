@@ -15,10 +15,9 @@ RUN uv pip install --python 3.13 --no-cache --target /build/deps .
 # Final stage
 FROM public.ecr.aws/lambda/python:3.13
 
-# Copy installed dependencies
+# Copy installed dependencies and application code
 COPY --from=builder /build/deps/ ${LAMBDA_TASK_ROOT}/
 
-# Copy application code
-COPY src/backend/ ${LAMBDA_TASK_ROOT}/backend/
-
-# Lambda handler will be set via CMD in CDK construct
+# Set the Lambda handler
+# This will be overridden by CDK for different Lambda functions
+CMD ["backend.api.app.lambda_handler"]

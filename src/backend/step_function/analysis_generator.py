@@ -12,13 +12,22 @@ from typing import Any
 import boto3
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
+from botocore.config import Config
+from botocore.exceptions import ClientError
 
 from backend.utils.s3_utils import upload_file_to_s3
 from backend.utils.sf_utils import download_parameters_from_s3
 
 logger = Logger()
 
-cloudwatch_client = boto3.client("logs")
+# Configure boto3 client with retry strategy for CloudWatch Logs
+retry_config = Config(
+    retries={
+        "max_attempts": 10,
+        "mode": "adaptive",  # Uses exponential backoff with adaptive retry strategy
+    }
+)
+
 lambda_client = boto3.client("lambda")
 bucket_name = os.environ["BUCKET_NAME"]
 
@@ -186,8 +195,10 @@ def run_cloudwatch_query(
     totalCost / countInvocations as avgCostPerInvocation,
     allDurationInSeconds / countInvocations as avgDurationPerInvocation
  """
-    try:
+    # Create CloudWatch client with retry configuration
+    cloudwatch_client = boto3.client("logs", config=retry_config)
 
+    try:
         query_id = cloudwatch_client.start_query(
             logGroupName=log_group_name,
             startTime=int(start_datetime.timestamp()),
@@ -195,17 +206,62 @@ def run_cloudwatch_query(
             queryString=query,
         )["queryId"]
 
-        response = cloudwatch_client.get_query_results(queryId=query_id)
-        while not response or response["status"] != "Complete":
-            time.sleep(3)
-            response = cloudwatch_client.get_query_results(queryId=query_id)
-            logger.debug(f"Query status for {log_group_name}: {response['status']}")
+        # Poll for query completion with exponential backoff
+        max_attempts = 30
+        base_wait_time = 1
+        attempt = 0
+
+        while attempt < max_attempts:
+            try:
+                response = cloudwatch_client.get_query_results(queryId=query_id)
+
+                if response["status"] == "Complete":
+                    logger.debug(f"Query completed for {log_group_name}")
+                    break
+                elif response["status"] in ["Failed", "Cancelled", "Timeout"]:
+                    logger.error(
+                        f"Query {response['status'].lower()} for {log_group_name}"
+                    )
+                    return None
+
+                # Exponential backoff: wait longer between each poll
+                wait_time = min(base_wait_time * (2**attempt), 30)
+                logger.debug(
+                    f"Query status for {log_group_name}: {response['status']}, "
+                    f"waiting {wait_time}s before retry"
+                )
+                time.sleep(wait_time)
+                attempt += 1
+
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "ThrottlingException":
+                    # Additional backoff for throttling
+                    wait_time = min(base_wait_time * (2 ** (attempt + 2)), 60)
+                    logger.warning(
+                        f"Throttled while polling query for {log_group_name}, "
+                        f"waiting {wait_time}s before retry"
+                    )
+                    time.sleep(wait_time)
+                    attempt += 1
+                else:
+                    raise
+
+        if attempt >= max_attempts:
+            logger.error(
+                f"Query timed out after {max_attempts} attempts for {log_group_name}"
+            )
+            return None
 
         logger.debug(f"Query response for {log_group_name}: {str(response)[:20]}")
 
     except cloudwatch_client.exceptions.MalformedQueryException as e:
-        logger.error(f"Error while generating report for: {log_group_name}")
-        logger.error(f"Exception: {e}")
+        logger.error(f"Malformed query for {log_group_name}: {e}")
+        return None
+    except ClientError as e:
+        logger.error(f"AWS error while querying {log_group_name}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error while querying {log_group_name}: {e}")
         return None
 
     return response["results"]  # type: ignore[no-any-return]
@@ -225,13 +281,19 @@ def check_log_group_exist(log_group_name: str) -> bool:
     bool
         True if log group exists
     """
-    log_groups = cloudwatch_client.describe_log_groups(
-        logGroupNamePrefix=log_group_name
-    )
-    for log_group in log_groups["logGroups"]:
-        if log_group["logGroupName"] == log_group_name:
-            return True
-    return False
+    cloudwatch_client = boto3.client("logs", config=retry_config)
+
+    try:
+        log_groups = cloudwatch_client.describe_log_groups(
+            logGroupNamePrefix=log_group_name
+        )
+        for log_group in log_groups["logGroups"]:
+            if log_group["logGroupName"] == log_group_name:
+                return True
+        return False
+    except ClientError as e:
+        logger.error(f"Error checking if log group exists for {log_group_name}: {e}")
+        return False
 
 
 def generate_cost_report(
@@ -258,7 +320,8 @@ def generate_cost_report(
     """
     lambda_costs = []
     logger.info(f"Processing lambda functions: {lambda_list}")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    # Reduced from 5 to 2 workers to avoid CloudWatch Logs API rate limits
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
             executor.submit(get_lambda_cost, lambda_name, start_date, end_date)
             for lambda_name in lambda_list

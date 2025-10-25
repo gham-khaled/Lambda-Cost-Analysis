@@ -16,7 +16,7 @@ logger = Logger()
 cors_config = CORSConfig(allow_origin="*", max_age=300)
 
 # Shared API Gateway resolver - routes will register with this instance
-app = APIGatewayRestResolver(cors=cors_config)
+app = APIGatewayRestResolver(cors=cors_config, strip_prefixes=["/api"])
 
 
 # Import routes to register them with the app

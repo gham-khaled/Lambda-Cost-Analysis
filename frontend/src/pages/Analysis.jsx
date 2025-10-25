@@ -87,7 +87,7 @@ const Analysis = () => {
 
 			// API call to fetch lambda functions without any parameters
 
-			const response = await axios.get(`${PROD_API_URL}/lambdaFunctions`)
+			const response = await axios.get(`${PROD_API_URL}/lambda-functions`)
 			const functions = response.data
 
 			handleFilters(functions)
