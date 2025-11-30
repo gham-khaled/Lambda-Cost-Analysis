@@ -60,6 +60,51 @@ const ReportDetails = () => {
         link.click();
         document.body.removeChild(link);
     };
+
+    const copyOptimizationScript = () => {
+        // Filter functions with potential savings
+        const functionsToOptimize = analysis.filter(func => parseFloat(func.potentialSavings || 0) > 0);
+
+        if (functionsToOptimize.length === 0) {
+            customToast('No functions with potential savings found', '⚠️', errorMsgStyle);
+            return;
+        }
+
+        // Generate bash script with backslash continuations
+        let script = '#!/bin/bash\n\n';
+        script += 'export PROFILE=${AWS_PROFILE:-default}\n';
+        script += 'export REGION=${AWS_REGION:-us-east-1}\n\n';
+        script += 'set -e  # Exit on error\n\n';
+
+        functionsToOptimize.forEach((func, index) => {
+            const savings = parseFloat(func.potentialSavings || 0);
+            script += `# Update ${func.functionName} (Savings: $${savings.toFixed(4)})\n`;
+            script += `aws lambda update-function-configuration \\\n`;
+            script += `  --function-name ${func.functionName} \\\n`;
+            script += `  --memory-size ${func.optimalMemory} \\\n`;
+            script += `  --profile $PROFILE \\\n`;
+            script += `  --region $REGION`;
+
+            if (index < functionsToOptimize.length - 1) {
+                script += ' &&\n\n';
+            } else {
+                script += '\n';
+            }
+        });
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(script).then(() => {
+            customToast('Optimization script copied to clipboard!', '✅', {
+                fontSize: '12px',
+                border: '0.4px solid #787474',
+                borderRadius: '5px',
+                background: '#253645',
+                color: '#fff',
+            });
+        }).catch(() => {
+            customToast('Failed to copy to clipboard', '❌', errorMsgStyle);
+        });
+    };
     useEffect(() => {
         setAnalysis([])
         setAnalysisDetail({})
@@ -111,16 +156,18 @@ const ReportDetails = () => {
                         <p className='text-white/70 text-sm ml-4'>{reportNumber[1]}</p>
                     </div>
                     {status === 'Completed' && (
-                        <div className='text-sm flex flex-row font-semibold text-lambdaPrimary rounded-md justify-between'>
+                        <div className='text-sm flex flex-row font-semibold text-lambdaPrimary rounded-md justify-between items-center gap-2'>
                             <div className='flex items-center'>
                                 <p className='hidden lg:flex'>Analysis Date:</p>
                                 <p className='text-white/70 text-sm lg:ml-4'>
                                     {new Date(summary.startDate).toDateString()} - {new Date(summary.endDate).toDateString()}
                                 </p>
                             </div>
-                            <button onClick={downloadFile} className='ml-auto  bg-lambdaPrimary text-white px-4 py-2 rounded'>
-                                Download CSV
-                            </button>
+                            <div className='flex gap-2'>
+                                <button onClick={downloadFile} className='bg-lambdaPrimary hover:bg-yellow-600 text-white px-4 py-2 rounded transition-colors'>
+                                    Download CSV
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -186,7 +233,7 @@ const ReportDetails = () => {
                 {status === 'Completed' && (
                     <div className='pt-4'>
                         {' '}
-                        <DynamicTable data={analysis}/>{' '}
+                        <DynamicTable data={analysis} onCopyOptimizationScript={copyOptimizationScript}/>{' '}
                     </div>
                 )}
             </div>
@@ -194,7 +241,7 @@ const ReportDetails = () => {
     )
 }
 
-const DynamicTable = ({data}) => {
+const DynamicTable = ({data, onCopyOptimizationScript}) => {
     const [sortConfig, setSortConfig] = useState({
         key: null,
         direction: 'ascending',
@@ -273,8 +320,14 @@ const DynamicTable = ({data}) => {
         <>
             {data.length !== 0 ? (
                 <div className='space-y-4'>
-                    {/* Column Selector Button */}
-                    <div className='flex justify-end'>
+                    {/* Action Buttons */}
+                    <div className='flex justify-end gap-2'>
+                        <button
+                            onClick={onCopyOptimizationScript}
+                            className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors'
+                        >
+                            Update Memory to optimal settings
+                        </button>
                         <div className='relative' ref={columnSelectorRef}>
                             <button
                                 onClick={() => setShowColumnSelector(!showColumnSelector)}
@@ -345,7 +398,9 @@ const DynamicTable = ({data}) => {
                         {sortedData.map((row, index) => (
                             <tr
                                 key={index}
-                                className={`${index % 2 === 0 ? 'bg-darkblueMedium' : 'bg-transparent'} cursor-pointer text-xs hover:bg-green-900/40${row.timeoutInvocations > 0 ? 'text-red-500' : ''} ${row.provisionedMemoryMB > row.optimalMemory * 2 ? 'text-yellow-500' : ''}`}
+                                className={`${index % 2 === 0 ? 'bg-darkblueMedium' : 'bg-transparent'} cursor-pointer text-xs hover:bg-green-900/40 ${row.timeoutInvocations > 0 ? 'text-red-500' : ''} ${row.potentialSavings > 0 ? 'bg-amber-950/40' : ''}`}
+                                data-tooltip-id={row.potentialSavings > 0 ? `savings-tooltip-${index}` : undefined}
+                                data-tooltip-content={row.potentialSavings > 0 ? `This function has $${parseFloat(row.potentialSavings).toFixed(4)} in potential savings if optimized` : undefined}
                             >
                                 {visibleColumnsData.map((column) => (
                                     <td key={column.key} className='px-6 py-3'>
@@ -369,6 +424,22 @@ const DynamicTable = ({data}) => {
                                 zIndex: 9999
                             }}
                         />
+                    ))}
+                    {sortedData.map((row, index) => (
+                        row.potentialSavings > 0 && (
+                            <Tooltip
+                                key={`savings-tooltip-${index}`}
+                                id={`savings-tooltip-${index}`}
+                                place="top"
+                                style={{
+                                    backgroundColor: '#B45309',
+                                    color: '#FEF3C7',
+                                    fontSize: '12px',
+                                    maxWidth: '300px',
+                                    zIndex: 9999
+                                }}
+                            />
+                        )
                     ))}
                     </div>
                 </div>
