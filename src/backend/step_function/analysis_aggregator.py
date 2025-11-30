@@ -1,5 +1,6 @@
 """Aggregate Lambda cost analysis results from multiple CSV files."""
 
+import json
 import os
 from datetime import datetime
 from io import StringIO

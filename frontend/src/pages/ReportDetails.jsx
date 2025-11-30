@@ -70,7 +70,7 @@ const ReportDetails = () => {
                 if (response.status === 200) {
                     setStatus(response.data.summary.status)
                     setSummary(response.data.summary)
-                    if (response.data.summary.status === 'Error') {
+                    if (response.data.summary.status === 'Failed') {
                         customToast('The Analysis Encountered an Error', '❌', errorMsgStyle)
                         setLoading(false)
                     } else if (response.data.summary.status === 'Running') {
@@ -153,11 +153,17 @@ const ReportDetails = () => {
                         </p>
                     </div>
                 ) : (
-                    status === 'Error' && (
-                        <div className='flex justify-center items-center h-64'>
+                    status === 'Failed' && (
+                        <div className='flex flex-col justify-center items-center h-64 gap-4'>
                             <div className='text-center'>
                                 <p className='text-base text-red-500 font-medium'>Report generation failed</p>
                                 <p className='text-sm text-gray-400 mt-2'>Please try running the analysis again</p>
+                                {summary && summary.errorCode && (
+                                    <div className='mt-4 p-3 bg-red-900/20 border border-red-500 rounded text-sm text-gray-300'>
+                                        <p className='font-semibold'>Error Code: {summary.errorCode}</p>
+                                        <p className='mt-1'>{summary.errorMessage}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )

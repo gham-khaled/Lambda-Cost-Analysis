@@ -42,7 +42,7 @@ def get_report() -> dict[str, Any]:
             extra={"report_id": report_id, "status": summary.get("status")},
         )
 
-        if summary["status"] in ["Running", "Error"]:
+        if summary["status"] in ["Running", "Error", "Failed"]:
             return {"summary": summary}
         else:
             analysis = download_from_s3(

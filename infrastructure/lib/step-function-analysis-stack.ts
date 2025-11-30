@@ -66,6 +66,17 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
                 BUCKET_NAME: this.analysisBucket.bucketName
             }
         });
+
+        const analysisErrorHandler = new DockerLambdaFunction(this, 'analysis_error_handler', {
+            handler: 'backend.step_function.analysis_error_handler.lambda_handler',
+            serviceName: 'analysis-error-handler',
+            timeout: Duration.seconds(60),
+            memorySize: 256,
+            environment: {
+                BUCKET_NAME: this.analysisBucket.bucketName
+            }
+        });
+
         // SF Tasks
         const analysisAggregatorJob = new tasks.LambdaInvoke(this, 'analysisAggregatorJob', {
             lambdaFunction: analysisAggregator,
@@ -78,6 +89,13 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
             outputPath: '$.Payload'
 
         });
+
+        const errorHandlerJob = new tasks.LambdaInvoke(this, 'analysisErrorHandlerJob', {
+            lambdaFunction: analysisErrorHandler,
+            inputPath: '$'
+        });
+
+        // Create the analysis flow with error handling
         const mapLambdaBJob = new sfn.Map(this, 'analysisMap', {
             maxConcurrency: 4,
             itemsPath: sfn.JsonPath.stringAt('$.lambda_functions_name'),
@@ -88,10 +106,19 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
                 'start_date.$': '$.start_date',
                 'end_date.$': '$.end_date'
             },
-        }).itemProcessor(analysisGeneratorJob)
+        }).itemProcessor(analysisGeneratorJob).addCatch(errorHandlerJob, {
+            errors: ['States.ALL'],
+            resultPath: '$.error_output'
+        });
 
-        const definition = analysisInitializerJob.next(mapLambdaBJob).next(analysisAggregatorJob)
-        // TODO: Add an Error state if it fails it updates the analysis file in the S3 bucket
+        const definition = analysisInitializerJob
+            .next(mapLambdaBJob)
+            .next(analysisAggregatorJob)
+            .addCatch(errorHandlerJob, {
+                errors: ['States.ALL'],
+                resultPath: '$.error_output'
+            });
+
         this.analysisStepFunction = new sfn.StateMachine(this, 'analysisStepFunction', {
             definitionBody: sfn.DefinitionBody.fromChainable(definition),
         });
@@ -99,6 +126,7 @@ export class StepFunctionAnalysisStack extends cdk.Stack {
         this.analysisBucket.grantPut(analysisInitializer)
         this.analysisBucket.grantReadWrite(analysisGenerator)
         this.analysisBucket.grantReadWrite(analysisAggregator)
+        this.analysisBucket.grantPut(analysisErrorHandler)
 
     }
 }
