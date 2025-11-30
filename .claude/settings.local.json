@@ -19,5 +19,10 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "awslabs.cdk-mcp-server",
+    "awslabs.aws-documentation-mcp-server"
+  ],
+  "enableAllProjectMcpServers": true
 }

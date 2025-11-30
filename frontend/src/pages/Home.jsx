@@ -2,7 +2,7 @@
 /* eslint-disable react/prop-types */
 
 import React, {useContext, useEffect, useState} from 'react'
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
 import axios from 'axios'
 import AnalysisContext from '../contexts/AnalysisContext'
 
@@ -10,6 +10,7 @@ import Sidebar from '../partials/Sidebar'
 import Header from '../partials/Header'
 import {summaryColumns} from '../data/optionsData'
 import {ThreeDots} from 'react-loader-spinner'
+import {FaArrowUp, FaArrowDown} from 'react-icons/fa'
 
 
 // const PROD_API_URL = process.env.VITE_PROD_API_URL || import.meta.env.VITE_PROD_API_URL
@@ -19,6 +20,7 @@ const Home = () => {
     // console.log(`PROD URL ${PROD_API_URL}`)
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const navigate = useNavigate()
 
     const {rowsPerPage, continuationToken, setContinuationToken} =
         useContext(AnalysisContext)
@@ -59,11 +61,20 @@ const Home = () => {
             })
     }
 
+    const actionButton = (
+        <button
+            onClick={() => navigate('/analytics')}
+            className='px-6 py-2 bg-lambdaPrimary-light hover:bg-lambdaPrimary-dark text-white font-semibold rounded-lg transition-colors duration-300'
+        >
+            Start a new analysis
+        </button>
+    )
+
     return (
         <div className='flex'>
             <Sidebar/>
             <div className='bg-darkblue w-full h-screen overflow-y-scroll p-10 pt-0 space-y-6 '>
-                <Header title='Analysis | Home'></Header>
+                <Header title='Analysis | Home' actionButton={actionButton}></Header>
                 <div className='pt-8'>
                     <DynamicTable
                         columns={summaryColumns}
@@ -86,6 +97,7 @@ const DynamicTable = ({
                           continuationToken,
                       }) => {
     const {rowsPerPage, setRowsPerPage} = useContext(AnalysisContext)
+    const navigate = useNavigate()
 
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(rowsPerPage)
@@ -172,10 +184,21 @@ const DynamicTable = ({
                                 <th
                                     key={column.key}
                                     scope='col'
-                                    className='px-6 py-3  hover:text-third-dark transition-all duration-300 ease-in-out'
+                                    className='px-6 py-3 hover:text-third-dark transition-all duration-300 ease-in-out cursor-pointer'
                                     onClick={() => requestSort(column.key)}
                                 >
-                                    {column.label}
+                                    <div className='flex items-center gap-2 whitespace-nowrap'>
+                                        <span>{column.label}</span>
+                                        {sortConfig.key === column.key && (
+                                            <span className='text-lambdaPrimary-light'>
+                                                {sortConfig.direction === 'ascending' ? (
+                                                    <FaArrowUp size={12} />
+                                                ) : (
+                                                    <FaArrowDown size={12} />
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
                                 </th>
                             ))}
                         </tr>
@@ -184,28 +207,14 @@ const DynamicTable = ({
                         {currentData.map((row, index) => (
                             <tr
                                 key={index}
+                                onClick={() => navigate(`/report/reportID=${row.reportID}`)}
                                 className={`${index % 2 === 0 ? 'bg-darkblueMedium' : 'bg-transparent'} cursor-pointer text-xs hover:bg-green-900/40  ${row.timeoutInvocations ? 'text-red-500' : ''} ${row.provisionedMemoryMB > row.optimalMemory * 2 ? 'text-yellow-500' : ''}`}
                             >
-                                {columns.map((column) => {
-                                    if (column.key === 'reportID') {
-                                        return (
-                                            <td key={column.key} className='px-6 py-3 '>
-                                                <Link
-                                                    to={`/report/reportID=${row[column.key]}`}
-                                                    className='text-lambdaPrimary-light hover:underline'
-                                                >
-                                                    {row[column.key]}
-                                                </Link>
-                                            </td>
-                                        )
-                                    } else {
-                                        return (
-                                            <td key={column.key} className='px-6 py-3'>
-                                                {row[column.key]}
-                                            </td>
-                                        )
-                                    }
-                                })}
+                                {columns.map((column) => (
+                                    <td key={column.key} className='px-6 py-3'>
+                                        {row[column.key]}
+                                    </td>
+                                ))}
                             </tr>
                         ))}
                         </tbody>

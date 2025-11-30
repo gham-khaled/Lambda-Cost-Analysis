@@ -68,7 +68,7 @@ test-api: ## Test the API endpoints
 	@echo "✅ API tests complete"
 
 test: ## Run Python tests
-	uv run pytest tests -v
+	uv run pytest src/tests -v
 
 clean: stop-api ## Stop API and remove Docker image
 	@echo "Removing Docker image..."

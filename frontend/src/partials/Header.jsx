@@ -2,7 +2,7 @@
 
 import { IoCalendarClearSharp } from 'react-icons/io5'
 
-const Header = ({ title = 'Dashboard', children }) => {
+const Header = ({ title = 'Dashboard', children, actionButton }) => {
 	const currentDate = new Date().toLocaleDateString('en-US', {
 		month: 'long',
 		day: 'numeric',
@@ -22,12 +22,16 @@ const Header = ({ title = 'Dashboard', children }) => {
 					{children}
 				</div>
 				<div className=' flex-row justify-end hidden lg:flex'>
-					<div className='p-2 px-4 rounded-md lg:rounded-3xl gap-6 font-semibold flex flex-row items-center justify-between bg-[#1A2833]'>
-						<IoCalendarClearSharp className='text-[20px] text-gray-300'></IoCalendarClearSharp>
-						<div className='font-medium text-xs text-gray-300'>
-							{currentDate} | {currentTime}
+					{actionButton ? (
+						actionButton
+					) : (
+						<div className='p-2 px-4 rounded-md lg:rounded-3xl gap-6 font-semibold flex flex-row items-center justify-between bg-[#1A2833]'>
+							<IoCalendarClearSharp className='text-[20px] text-gray-300'></IoCalendarClearSharp>
+							<div className='font-medium text-xs text-gray-300'>
+								{currentDate} | {currentTime}
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 			</div>
 		</div>
