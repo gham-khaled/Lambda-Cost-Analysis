@@ -56,6 +56,7 @@ def test_file_merge(s3_bucket, lambda_context):
         {
             "functionName": "LambdaA",
             "runtime": "python3.10",
+            "countInvocations": 10,
             "allDurationInSeconds": 21,
             "provisionedMemoryMB": 128,
             "MemoryCost": 1,
@@ -68,7 +69,10 @@ def test_file_merge(s3_bucket, lambda_context):
             "optimalTotalCost": 1.5,
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
-            "memoryExceededInvocation": 0,
+            "logSizeGB": 0.001,
+            "logIngestionCost": 0.0005,
+            "logStorageCost": 0.00003,
+            "analysisCost": 0.000005,
             "timeoutInvocations": 0,
         }
     ]
@@ -76,6 +80,7 @@ def test_file_merge(s3_bucket, lambda_context):
         {
             "functionName": "LambdaC",
             "runtime": "python3.10",
+            "countInvocations": 15,
             "allDurationInSeconds": 21,
             "provisionedMemoryMB": 128,
             "MemoryCost": 1,
@@ -88,7 +93,10 @@ def test_file_merge(s3_bucket, lambda_context):
             "optimalTotalCost": 1.5,
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
-            "memoryExceededInvocation": 0,
+            "logSizeGB": 0.001,
+            "logIngestionCost": 0.0005,
+            "logStorageCost": 0.00003,
+            "analysisCost": 0.000005,
             "timeoutInvocations": 0,
         }
     ]
@@ -159,6 +167,7 @@ def test_summary_file(s3_bucket, lambda_context):
         {
             "functionName": "LambdaA",
             "runtime": "python3.10",
+            "countInvocations": 10,
             "allDurationInSeconds": 21,
             "provisionedMemoryMB": 128,
             "MemoryCost": 1,
@@ -171,12 +180,16 @@ def test_summary_file(s3_bucket, lambda_context):
             "optimalTotalCost": 1.5,
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
-            "memoryExceededInvocation": 5,
+            "logSizeGB": 0.002,
+            "logIngestionCost": 0.001,
+            "logStorageCost": 0.00006,
+            "analysisCost": 0.00001,
             "timeoutInvocations": 2,
         },
         {
             "functionName": "LambdaB",
             "runtime": "python3.10",
+            "countInvocations": 20,
             "allDurationInSeconds": 55,
             "provisionedMemoryMB": 256,
             "MemoryCost": 2,
@@ -189,7 +202,10 @@ def test_summary_file(s3_bucket, lambda_context):
             "optimalTotalCost": 2,
             "potentialSavings": 0.5,
             "avgDurationPerInvocation": 3,
-            "memoryExceededInvocation": 0,
+            "logSizeGB": 0.003,
+            "logIngestionCost": 0.0015,
+            "logStorageCost": 0.00009,
+            "analysisCost": 0.000015,
             "timeoutInvocations": 1,
         },
     ]
@@ -197,6 +213,7 @@ def test_summary_file(s3_bucket, lambda_context):
         {
             "functionName": "LambdaC",
             "runtime": "python3.10",
+            "countInvocations": 15,
             "allDurationInSeconds": 21,
             "provisionedMemoryMB": 128,
             "MemoryCost": 1,
@@ -209,7 +226,10 @@ def test_summary_file(s3_bucket, lambda_context):
             "optimalTotalCost": 1.5,
             "potentialSavings": 0,
             "avgDurationPerInvocation": 3,
-            "memoryExceededInvocation": 0,
+            "logSizeGB": 0.001,
+            "logIngestionCost": 0.0005,
+            "logStorageCost": 0.00003,
+            "analysisCost": 0.000005,
             "timeoutInvocations": 0,
         }
     ]
@@ -251,13 +271,17 @@ def test_summary_file(s3_bucket, lambda_context):
     )
 
     expected_report = {
+        "countInvocations": 45.0,
         "allDurationInSeconds": 97.0,
         "MemoryCost": 4.0,
         "InvocationCost": 1.5,
         "totalCost": 5.5,
         "potentialSavings": 0.5,
         "timeoutInvocations": 3.0,
-        "memoryExceededInvocation": 5.0,
+        "logSizeGB": 0.006,
+        "logIngestionCost": 0.003,
+        "logStorageCost": 0.00018,
+        "analysisCost": 0.00003,
         "avgCostPerInvocation": 0.5833333333,
         "avgMaxMemoryUsedMB": 101.3333333333,
         "avgOverProvisionedMB": 69.3333333333,

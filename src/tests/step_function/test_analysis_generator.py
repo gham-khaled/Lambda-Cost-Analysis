@@ -27,7 +27,6 @@ def mock_query_results():
             [
                 {"field": "timeoutInvocations", "value": "1"},
                 {"field": "countInvocations", "value": "3"},
-                {"field": "memoryExceededInvocation", "value": "0"},
                 {"field": "singleInvocationCost", "value": "0.0000002"},
                 {"field": "GBSecondMemoryPrice", "value": "0.0000166667"},
                 {"field": "GBSecondStoragePrice", "value": "0.0000000309"},
@@ -36,6 +35,7 @@ def mock_query_results():
                 {"field": "allDurationInSeconds", "value": "3.0"},
                 {"field": "GbSecondsMemoryConsumed", "value": "0.375"},
                 {"field": "GbSecondsStorageConsumed", "value": "0"},
+                {"field": "logSizeGB", "value": "0.0001"},
                 {"field": "MemoryCost", "value": "0.00000625"},
                 {"field": "StorageCost", "value": "0"},
                 {"field": "InvocationCost", "value": "0.0000006"},
@@ -50,6 +50,11 @@ def mock_query_results():
                 {"field": "avgDurationPerInvocation", "value": "1.0"},
             ]
         ],
+        "statistics": {
+            "bytesScanned": 102400,  # 100 KB in bytes
+            "recordsMatched": 3.0,
+            "recordsScanned": 3.0,
+        },
     }
 
 
@@ -85,13 +90,16 @@ def test_moto_supports_cloudwatch_insights():
 
 
 @mock_aws
-@patch("backend.step_function.analysis_generator.cloudwatch_client")
-@patch("backend.step_function.analysis_generator.lambda_client")
+@patch("boto3.client")
 def test_get_lambda_cost_full_logic(
-    mock_lambda_client, mock_cloudwatch_client, mock_query_results, aws_credentials
+    mock_boto_client, mock_query_results, aws_credentials
 ):
     """Test the full get_lambda_cost function logic with mocked AWS responses."""
     from backend.step_function.analysis_generator import get_lambda_cost
+
+    # Create mock clients
+    mock_lambda_client = mock_boto_client.return_value
+    mock_cloudwatch_client = mock_boto_client.return_value
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {
@@ -128,7 +136,6 @@ def test_get_lambda_cost_full_logic(
     # Verify cost analysis fields
     assert float(result["countInvocations"]) == 3
     assert float(result["timeoutInvocations"]) == 1
-    assert float(result["memoryExceededInvocation"]) == 0
     assert float(result["provisionedMemoryMB"]) == 128
     assert float(result["maxMemoryUsedMB"]) == 70
     assert float(result["overProvisionedMB"]) == 58
@@ -136,6 +143,12 @@ def test_get_lambda_cost_full_logic(
     assert float(result["totalCost"]) > 0
     assert float(result["potentialSavings"]) > 0
     assert float(result["avgDurationPerInvocation"]) == 1.0
+
+    # Verify log-related fields
+    assert float(result["logSizeGB"]) > 0
+    assert float(result["logIngestionCost"]) > 0
+    assert float(result["logStorageCost"]) > 0
+    assert float(result["analysisCost"]) > 0
 
     # Verify Lambda client was called correctly
     mock_lambda_client.get_function_configuration.assert_called_once_with(
@@ -150,13 +163,14 @@ def test_get_lambda_cost_full_logic(
 
 
 @mock_aws
-@patch("backend.step_function.analysis_generator.cloudwatch_client")
-@patch("backend.step_function.analysis_generator.lambda_client")
-def test_get_lambda_cost_no_log_group(
-    mock_lambda_client, mock_cloudwatch_client, aws_credentials
-):
+@patch("boto3.client")
+def test_get_lambda_cost_no_log_group(mock_boto_client, aws_credentials):
     """Test get_lambda_cost when log group doesn't exist."""
     from backend.step_function.analysis_generator import get_lambda_cost
+
+    # Create mock clients
+    mock_lambda_client = mock_boto_client.return_value
+    mock_cloudwatch_client = mock_boto_client.return_value
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {
@@ -180,13 +194,14 @@ def test_get_lambda_cost_no_log_group(
 
 
 @mock_aws
-@patch("backend.step_function.analysis_generator.cloudwatch_client")
-@patch("backend.step_function.analysis_generator.lambda_client")
-def test_get_lambda_cost_no_invocations(
-    mock_lambda_client, mock_cloudwatch_client, aws_credentials
-):
+@patch("boto3.client")
+def test_get_lambda_cost_no_invocations(mock_boto_client, aws_credentials):
     """Test get_lambda_cost when there are no invocations."""
     from backend.step_function.analysis_generator import get_lambda_cost
+
+    # Create mock clients
+    mock_lambda_client = mock_boto_client.return_value
+    mock_cloudwatch_client = mock_boto_client.return_value
 
     # Mock Lambda function configuration
     mock_lambda_client.get_function_configuration.return_value = {
@@ -209,6 +224,7 @@ def test_get_lambda_cost_no_invocations(
     mock_cloudwatch_client.get_query_results.return_value = {
         "status": "Complete",
         "results": [],
+        "statistics": {"bytesScanned": 0, "recordsMatched": 0, "recordsScanned": 0},
     }
 
     start_date = "2024-01-01T00:00:00.000Z"

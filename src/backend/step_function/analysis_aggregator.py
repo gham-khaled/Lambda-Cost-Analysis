@@ -79,13 +79,17 @@ def lambda_handler(event: list[dict[str, Any]], context: LambdaContext) -> None:
 
     aggregated_data.rename(columns=avg_columns_rename, inplace=True)
     agg_funcs = {
+        "countInvocations": "sum",
         "allDurationInSeconds": "sum",
         "MemoryCost": "sum",
         "InvocationCost": "sum",
         "totalCost": "sum",
         "potentialSavings": "sum",
         "timeoutInvocations": "sum",
-        "memoryExceededInvocation": "sum",
+        "logSizeGB": "sum",
+        "logIngestionCost": "sum",
+        "logStorageCost": "sum",
+        "analysisCost": "sum",
         "avgCostPerInvocation": "mean",
         "avgMaxMemoryUsedMB": "mean",
         "avgOverProvisionedMB": "mean",

@@ -13,7 +13,9 @@
       "Bash(PYTHONPATH=src uv run pytest:*)",
       "Bash(npx cdk deploy:*)",
       "Bash(npm run dev)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(npm install:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

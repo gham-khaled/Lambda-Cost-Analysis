@@ -106,8 +106,9 @@ def get_lambda_cost(
     if not query_response:
         return None
 
-    results = query_response[0]
+    results, bytes_scanned = query_response
     logger.info(f"Query results for {lambda_name}: {results}")
+    logger.info(f"Bytes scanned for {lambda_name}: {bytes_scanned}")
 
     answer = {
         "functionName": lambda_name,
@@ -117,6 +118,21 @@ def get_lambda_cost(
     for result in results:
         field, value = result["field"], result["value"]
         answer[field] = value
+
+    # Calculate log costs based on bytesScanned from CloudWatch
+    # CloudWatch Logs pricing (us-west-2)
+    log_ingestion_price_per_gb = 0.50  # $0.50 per GB ingested
+    log_storage_price_per_gb = 0.03  # $0.03 per GB-month stored
+    query_price_per_gb = 0.005  # $0.005 per GB scanned
+
+    bytes_scanned_gb = bytes_scanned / (1024**3)  # Convert bytes to GB
+    log_size_gb = float(answer.get("logSizeGB", 0))
+
+    answer["logSizeGB"] = log_size_gb
+    answer["logIngestionCost"] = log_size_gb * log_ingestion_price_per_gb
+    answer["logStorageCost"] = log_size_gb * log_storage_price_per_gb
+    answer["analysisCost"] = bytes_scanned_gb * query_price_per_gb
+
     if float(answer["potentialSavings"]) < 0:
         answer["potentialSavings"] = 0
         answer["optimalMemory"] = answer["provisionedMemoryMB"]
@@ -130,7 +146,7 @@ def run_cloudwatch_query(
     memory_size: int,
     storage_size: int,
     architecture: str,
-) -> list[list[dict[str, str]]] | None:
+) -> tuple[list[dict[str, str]], float] | None:
     """
     Execute CloudWatch Logs Insights query for cost analysis.
 
@@ -151,23 +167,20 @@ def run_cloudwatch_query(
 
     Returns
     -------
-    list or None
-        Query results or None on error
+    tuple or None
+        Tuple of (query results, bytes scanned) or None on error
     """
     gb_second_memory_price = (
         "0.0000133334" if architecture == "arm64" else "0.0000166667"
     )
     gb_second_storage_price = "0.0000000309"
     query = f"""
-    fields @timestamp, @message
-    | parse @message "Process exited before completing request" as memory_exceeded_1
-    | parse @message "[ERROR] MemoryError" as memory_exceeded_2
+    fields @timestamp, @message, @logStream
     | parse @message "Task timed out after *" as timeout_number_1
     | parse @message "Status: timeout" as timeout_number_2
     | parse @message "REPORT RequestId: *" as REPORT
     | stats  greatest(count(timeout_number_1) , 0) + greatest(count(timeout_number_2) , 0) as timeoutInvocations,
     count(REPORT) as countInvocations,
-    greatest(count(memory_exceeded_1) , 0) + greatest(count(memory_exceeded_2) , 0) as memoryExceededInvocation,
     0.20 / 1000000 as singleInvocationCost,
     {gb_second_memory_price} as GBSecondMemoryPrice,
     {gb_second_storage_price} as GBSecondStoragePrice,
@@ -177,6 +190,8 @@ def run_cloudwatch_query(
     sum(@billedDuration) / 1000 as allDurationInSeconds,
     allDurationInSeconds * provisionedMemoryMB / 1024 as GbSecondsMemoryConsumed,
     allDurationInSeconds * StorageSizeMB / 1024 as GbSecondsStorageConsumed,
+
+    sum(strlen(@message)) / 1024 / 1024 / 1024 as logSizeGB,
 
     GbSecondsMemoryConsumed *  GBSecondMemoryPrice as MemoryCost,
     GbSecondsStorageConsumed *  GBSecondStoragePrice as StorageCost,
@@ -254,6 +269,17 @@ def run_cloudwatch_query(
 
         logger.debug(f"Query response for {log_group_name}: {str(response)[:20]}")
 
+        # Extract bytesScanned from the response (statistics)
+        bytes_scanned = response.get("statistics", {}).get("bytesScanned", 0)
+
+        # Check if results are empty (no invocations during the period)
+        if not response.get("results") or len(response["results"]) == 0:
+            logger.warning(
+                f"No query results found for {log_group_name}. "
+                "This likely means the function had no invocations during the analysis period."
+            )
+            return None
+
     except cloudwatch_client.exceptions.MalformedQueryException as e:
         logger.error(f"Malformed query for {log_group_name}: {e}")
         return None
@@ -264,7 +290,7 @@ def run_cloudwatch_query(
         logger.error(f"Unexpected error while querying {log_group_name}: {e}")
         return None
 
-    return response["results"]  # type: ignore[no-any-return]
+    return (response["results"][0], bytes_scanned)
 
 
 def check_log_group_exist(log_group_name: str) -> bool:
@@ -336,6 +362,7 @@ def generate_cost_report(
         "functionName",
         "runtime",
         "architecture",
+        "countInvocations",
         "allDurationInSeconds",
         "provisionedMemoryMB",
         "MemoryCost",
@@ -349,7 +376,10 @@ def generate_cost_report(
         "potentialSavings",
         "avgDurationPerInvocation",
         "timeoutInvocations",
-        "memoryExceededInvocation",
+        "logSizeGB",
+        "logIngestionCost",
+        "logStorageCost",
+        "analysisCost",
     ]
     # with open(output_file, "w", newline="") as csvfile:
     writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames, extrasaction="ignore")
