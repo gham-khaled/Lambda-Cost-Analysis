@@ -1,10 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   pre-commit-and-test:
@@ -35,21 +33,6 @@ jobs:
       run: |
         uv run pre-commit run --all-files
       continue-on-error: true
-
-    - name: Commit pre-commit fixes
-      if: github.event_name == 'push'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add -A
-        git diff --staged --quiet || git commit -m "style: apply pre-commit fixes [skip ci]"
-
-    - name: Push pre-commit fixes
-      if: github.event_name == 'push'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
 
     - name: Run pytest
       run: |
