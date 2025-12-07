@@ -76,4 +76,4 @@ clean: stop-api ## Stop API and remove Docker image
 	@echo "✅ Cleanup complete"
 
 deploy: build-frontend test ## Deploy to AWS
-	cd infrastructure && cdk deploy --all
+	cd infrastructure && AWS_PROFILE=shifted cdk deploy --all
