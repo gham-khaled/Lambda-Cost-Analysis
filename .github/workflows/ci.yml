@@ -38,7 +38,7 @@ jobs:
 
     - name: Run pytest
       run: |
-        uv run pytest tests -v --tb=short
+        uv run pytest src/tests -v --tb=short
       env:
         AWS_ACCESS_KEY_ID: testing
         AWS_SECRET_ACCESS_KEY: testing
